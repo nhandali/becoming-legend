@@ -183,7 +183,6 @@ def play_turn(game: ".game.Game") -> ".game.Game":
 	player = game.current_player
 
 	while True:
-		print(player.hero.damage)
 		heropower = player.hero.power
 		if heropower.is_usable() and random.random() < 0.1:
 			if heropower.requires_target():
