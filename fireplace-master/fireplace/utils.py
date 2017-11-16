@@ -216,7 +216,7 @@ def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 				heropower.use()
 			continue
 
-		# Randomly attack with whatever can attack
+		# For all characters, try to attack hero if possible
 		for character in player.characters:
 			if character.can_attack():
 				if character.can_attack(target=player.opponent.hero):
