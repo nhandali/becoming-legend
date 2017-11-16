@@ -1,0 +1,11 @@
+TODOS:
+
+1. Understand simulator (how to interact with cards)
+2. Grab card data from hsreplay -> predict which cards opponent has in hand
+3. come up with model/algorithm to tackle task
+4. Write MDP for our simulator
+5. Write a feature extractor 
+6. Write minimax agent 
+7. WRite eval function
+8. TEst simulator
+9. Write up with results
