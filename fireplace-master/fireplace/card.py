@@ -85,7 +85,7 @@ class BaseCard(BaseEntity):
 		caches = {
 			Zone.HAND: self.controller.hand,
 			Zone.DECK: self.controller.deck,
-			Zone.DISCARD: self.controller.discarded,
+			Zone.REMOVEDFROMGAME: self.controller.discarded,
 			Zone.GRAVEYARD: self.controller.graveyard,
 			Zone.SETASIDE: self.game.setaside,
 		}
@@ -215,7 +215,7 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
 
 	def discard(self):
 		self.log("Discarding %r" % (self))
-		self.zone = Zone.DISCARD
+		self.zone = Zone.REMOVEDFROMGAME
 
 	def draw(self):
 		if len(self.controller.hand) >= self.controller.max_hand_size:
