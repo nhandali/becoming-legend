@@ -26,6 +26,39 @@ def Card(id):
 		subclass = Secret
 	return subclass(data)
 
+def princeWarlock():
+	cards = []
+	cards.append(Card("ICC_092"))
+	cards.append(Card("ICC_092"))
+	cards.append(Card("NEW1_025"))
+	cards.append(Card("NEW1_025"))
+	cards.append(Card("UNG_809"))
+	cards.append(Card("UNG_809"))
+	cards.append(Card("EX1_319"))
+	cards.append(Card("EX1_319"))
+	cards.append(Card("KAR_089"))
+	cards.append(Card("KAR_089"))
+	cards.append(Card("CFM_637"))
+	cards.append(Card("EX1_308"))
+	cards.append(Card("EX1_308"))
+	cards.append(Card("CS2_065"))
+	cards.append(Card("CS2_065"))
+	cards.append(Card("ICC_851"))
+	cards.append(Card("OG_113"))
+	cards.append(Card("OG_113"))
+	cards.append(Card("UNG_075"))
+	cards.append(Card("UNG_075"))
+	cards.append(Card("ICC_466"))
+	cards.append(Card("ICC_466"))
+	cards.append(Card("EX1_048"))
+	cards.append(Card("ICC_075"))
+	cards.append(Card("ICC_075"))
+	cards.append(Card("EX1_310"))
+	cards.append(Card("EX1_310"))
+	cards.append(Card("ICC_705"))
+	cards.append(Card("ICC_705"))
+	cards.append(Card("ICC_831"))
+	return cards
 
 class BaseCard(BaseEntity):
 	Manager = CardManager

@@ -5,7 +5,7 @@ from importlib import import_module
 from pkgutil import iter_modules
 from typing import List
 from xml.etree import ElementTree
-from hearthstone.enums import CardClass, CardType
+from hearthstone.enums import CardClass, CardType, Rarity
 
 
 # Autogenerate the list of cardset modules
@@ -65,7 +65,7 @@ def random_draft(card_class: CardClass, exclude=[]):
 	Return a deck of 30 random cards for the \a card_class
 	"""
 	from . import cards
-	from .deck import Deck
+	from .deck import Deck 
 
 	deck = []
 	collection = []
@@ -79,7 +79,8 @@ def random_draft(card_class: CardClass, exclude=[]):
 			continue
 		if cls.type == CardType.HERO:
 			# Heroes are collectible...
-			continue
+			if cls.rarity != Rarity.LEGENDARY:
+				continue
 		if cls.card_class and cls.card_class != card_class:
 			continue
 		collection.append(cls)
@@ -167,10 +168,10 @@ def weighted_card_choice(source, weights: List[int], card_sets: List[str], count
 def setup_game() -> ".game.Game":
 	from .game import Game
 	from .player import Player
-
-	deck1 = random_draft(CardClass.MAGE)
+	from fireplace.card import princeWarlock
+	deck1 = princeWarlock()
 	deck2 = random_draft(CardClass.WARRIOR)
-	player1 = Player("Player1", deck1, CardClass.MAGE.default_hero)
+	player1 = Player("Player1", deck1, CardClass.WARLOCK.default_hero)
 	player2 = Player("Player2", deck2, CardClass.WARRIOR.default_hero)
 
 	game = Game(players=(player1, player2))
@@ -178,9 +179,62 @@ def setup_game() -> ".game.Game":
 
 	return game
 
+"""
+	This player tries to play cards before hero powering, it also plays
+	the first card that's playable, and keeps playing cards until it can't anymore.
+	It also always goes face, unless there are taunts in the way.
+"""
+def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
+	while True:
+		# iterate over our hand and play whatever is playable
+		for card in player.hand:
+			if card.is_playable():
+				target = None
+				if card.must_choose_one:
+					card = random.choice(card.choose_cards)
+				if card.requires_target():
+					if player.opponent.hero in card.targets:
+						target = player.opponent.hero
+					else:
+						target = card.targets[0]
+				print("Playing %r on %r" % (card, target))
+				card.play(target=target)
+				if player.choice:
+					choice = random.choice(player.choice.cards)
+					print("Choosing card %r" % (choice))
+					player.choice.choose(choice)
 
+				continue
+
+		heropower = player.hero.power
+		if heropower.is_usable():
+			if heropower.requires_target():
+				if player.opponent.hero in heropower.targets:
+					heropower.use(target=player.opponent.hero)
+				else:
+					heropower.use(target=heropower.targets[0])
+			else:
+				heropower.use()
+			continue
+
+		# For all characters, try to attack hero if possible
+		for character in player.characters:
+			if character.can_attack():
+				if character.can_attack(target=player.opponent.hero):
+					character.attack(player.opponent.hero)
+				else:
+					character.attack(character.targets[0])
+
+		break
+
+	game.end_turn()
+	return game
+
+
+# Seems like this is where players actually play some sort of strategy
 def play_turn(game: ".game.Game") -> ".game.Game":
 	player = game.current_player
+	if player == game.players[0]: return faceFirstLegalMovePlayer(player, game)
 
 	while True:
 		print(player.hero.damage)
