@@ -1,0 +1,10 @@
+We are going to model the game as an adversarial game with 2 agents, and use the fireplace API to simulate the game state. 
+This includes information about each heroes current health total, each card in the player's hand, and the state each minion on the board. 
+We will also keep track of the cards previously played by the opponent, so that we can glean information about what deck they are playing,
+as well as what cards they might have in their hand. In fireplace, all game objects are modelled by "Entity" objects, 
+each of which tracks properties in a dictionary mapping from a "GameTag", which is an enumerated value about some game state, to the value about that state. 
+We will model the game using 3 seperate objects: Game, Player, and Card objects. We will keep track of the players deck in a CardList object, 
+and keep track of what the opponent's played also in a CardList object. Then, as the game progresses, we randomly sample cards from the deck to "draw" them, 
+and add those to the cardList keeping track of the players hand. 
+
+We also have a game object that keeps track of both players, whose turn it is, and will start the game by determining the initial player. 
