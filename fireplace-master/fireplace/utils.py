@@ -199,6 +199,9 @@ def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 						target = card.targets[0]
 				print("Playing %r on %r" % (card, target))
 				card.play(target=target)
+				if game.ended:
+					game.end_turn()
+					return game
 				if player.choice:
 					choice = random.choice(player.choice.cards)
 					print("Choosing card %r" % (choice))
@@ -224,7 +227,8 @@ def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 					character.attack(player.opponent.hero)
 				else:
 					character.attack(character.targets[0])
-
+				if game.ended:
+					break
 		break
 
 	game.end_turn()
@@ -268,6 +272,8 @@ def play_turn(game: ".game.Game") -> ".game.Game":
 		for character in player.characters:
 			if character.can_attack():
 				character.attack(random.choice(character.targets))
+				if game.ended:
+					break
 
 		break
 
@@ -286,5 +292,7 @@ def play_full_game() -> ".game.Game":
 
 	while True:
 		play_turn(game)
-
+		if game.ended:
+			print(game.loser)
+			break
 	return game

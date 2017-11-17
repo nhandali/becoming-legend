@@ -7,7 +7,14 @@ from fireplace.utils import play_full_game
 
 def test_full_game():
 	try:
-		play_full_game()
+		count = 0
+		total = 0
+		for _ in range(500):
+			game = play_full_game()
+			if game.loser != game.players[0] :
+				count += 1
+			total += 1
+		print("Winrate: ", count/float(total))
 	except GameOver:
 		print("Game completed normally.")
 
