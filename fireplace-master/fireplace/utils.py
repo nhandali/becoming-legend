@@ -168,10 +168,10 @@ def weighted_card_choice(source, weights: List[int], card_sets: List[str], count
 def setup_game() -> ".game.Game":
 	from .game import Game
 	from .player import Player
-
-	deck1 = random_draft(CardClass.WARLOCK)
+	from fireplace.card import princeWarlock
+	deck1 = princeWarlock()
 	deck2 = random_draft(CardClass.WARRIOR)
-	player1 = Player("Player1", deck1, CardClass.MAGE.default_hero)
+	player1 = Player("Player1", deck1, CardClass.WARLOCK.default_hero)
 	player2 = Player("Player2", deck2, CardClass.WARRIOR.default_hero)
 
 	game = Game(players=(player1, player2))
