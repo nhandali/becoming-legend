@@ -5,7 +5,7 @@ from importlib import import_module
 from pkgutil import iter_modules
 from typing import List
 from xml.etree import ElementTree
-from hearthstone.enums import CardClass, CardType
+from hearthstone.enums import CardClass, CardType, Rarity
 
 
 # Autogenerate the list of cardset modules
@@ -65,7 +65,7 @@ def random_draft(card_class: CardClass, exclude=[]):
 	Return a deck of 30 random cards for the \a card_class
 	"""
 	from . import cards
-	from .deck import Deck
+	from .deck import Deck 
 
 	deck = []
 	collection = []
@@ -79,7 +79,8 @@ def random_draft(card_class: CardClass, exclude=[]):
 			continue
 		if cls.type == CardType.HERO:
 			# Heroes are collectible...
-			continue
+			if cls.rarity != Rarity.LEGENDARY:
+				continue
 		if cls.card_class and cls.card_class != card_class:
 			continue
 		collection.append(cls)
@@ -168,7 +169,7 @@ def setup_game() -> ".game.Game":
 	from .game import Game
 	from .player import Player
 
-	deck1 = random_draft(CardClass.MAGE)
+	deck1 = random_draft(CardClass.WARLOCK)
 	deck2 = random_draft(CardClass.WARRIOR)
 	player1 = Player("Player1", deck1, CardClass.MAGE.default_hero)
 	player2 = Player("Player2", deck2, CardClass.WARRIOR.default_hero)
