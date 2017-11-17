@@ -21,15 +21,20 @@ File Notes:
 							- from .setup() it calls self.pick_first_player() *BUT* there are *TWO* pick_first_player()
 						  	  in game.py: one in BaseGame and one in class CoinRules
 							- one would think that it's the one in BaseGame, *BUT* it's *NOT*. It calls the one in CoinRules
+		- random_draft()
+			- fixed random draft, works for all cards now
+			- *** Need to create another function in this file that hand-picks cards to make the zoo lock deck ***
 
 	fireplace/game.py:
 		- see the sections above with *** IMPORTANT *** tab
 		- after MulliganRules completes the mulligan phase, it calls self.begin_turn(p1)
 			- this *DOES NOT* go to BaseGame.begin_turn(), it will first go to CoinRules.begin_turn
+	
+
 
 General Notes:
 	- Everything is an Entity and every Entity is in a Zone
 	- Heros are Characters (Players are NOT == to Heroes, Heroes and their respective hero power are summoned by Players)
 	- Seems like we often have self.controller to denote who "controls" that card, character, etc.
-	- When trying to print out stuff, certain files just use print(message), others need self.log(message)
-	
+	- When trying to print out stuff, certain files just use print(message), others need self.log(message) - just do a ctrl-f to see which ones are used in the file
+	- Have hearthstone.enums pulled up in web browser at all times, useful to see the fields
