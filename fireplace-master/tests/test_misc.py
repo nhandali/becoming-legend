@@ -42,8 +42,9 @@ def test_discover():
 	book = game.player1.give("KAR_009")
 	book.play()
 	for card in game.player1.hand:
-		print(card)
-		print(card.created)
+		if card.created:
+			print(card)
+			print("Created by:", card.createdBy)
 test_discover()
 def test_event_queue_summon():
 	game = prepare_empty_game()
