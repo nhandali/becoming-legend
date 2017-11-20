@@ -224,26 +224,36 @@ def kNearestDecks(observed_cards, opponent_class):
 
 if __name__ == "__main__":
     #print(get_card_info(42743)) # prints info for Despicable Dreadlord
+    """
+    frequencyTable, totalCards = computeCardFreqs("WARLOCK")
+    card_tuples = []
+    for card_name in frequencyTable:
+        card_tuples.append((frequencyTable[card_name], card_name))
+
+    for item in reversed(sorted(card_tuples)):
+        print(item[1], " has frequency ", item[0])
+    """
 
     """
-    This code computes a frequency table for how often pairs of cards are seen
-    in decks for a specific class
+    # This code computes a frequency table for how often pairs of cards are seen
+    # in decks for a specific class
     matchings = buildCardMatchings("WARLOCK")
     for card in matchings["Flame Imp"]:
         print(card, " has relative frequency with Flame Imp of ", matchings["Flame Imp"][card])
     """
 
     """
-    This code computes a frequency table of all the cards that
-    appear in decks containing EVERY card in the list that is
-    passed in to this method
-    matchings = getCardsThatAppearAlongside(["Flame Imp", "Despicable Dreadlord", "Patches the Pirate"])
+    # This code computes a frequency table of all the cards that
+    # appear in decks containing EVERY card in the list that is
+    # passed in to this method
+    matchings = getCardsThatAppearAlongside(["Flame Imp", "Prince Keleseth", "Doomguard"])
     #del(matchings["Flame Imp"])
     for thing in matchings:
         print(thing + ",", matchings[thing])
     """
 
-    seenCards = ["Flame Imp", "Despicable Dreadlord", "Patches the Pirate", "Prince Keleseth", "Bloodreaver Gul'dan"]
+    #seenCards = ["Flame Imp", "Despicable Dreadlord", "Patches the Pirate", "Prince Keleseth", "Bloodreaver Gul'dan"]
+    seenCards = ["Stonehill Defender", "Stonehill Defender", "Bloodmage Thalnos", "Elise the Trailblazer", "Dirty Rat", "Dirty Rat", "Skulking Geist"]
     print("Given the cards", seenCards)
     print("The opponent's most likely decks are:")
     print("")
