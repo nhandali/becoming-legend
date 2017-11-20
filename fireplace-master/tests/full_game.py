@@ -5,16 +5,17 @@ from fireplace.exceptions import GameOver
 from fireplace.utils import play_full_game
 
 
-def test_full_game():
+def test_full_game(numgames = 1):
 	try:
 		count = 0
 		total = 0
-		for _ in range(1):
+		for _ in range(numgames):
 			game = play_full_game()
 			if game.loser != game.players[0] :
 				count += 1
 			total += 1
 		print("Winrate: ", count/float(total))
+		print(numgames)
 	except GameOver:
 		print("Game completed normally.")
 
@@ -26,8 +27,7 @@ def main():
 		if not numgames.isdigit():
 			sys.stderr.write("Usage: %s [NUMGAMES]\n" % (sys.argv[0]))
 			exit(1)
-		for i in range(int(numgames)):
-			test_full_game()
+		test_full_game(int(numgames))
 	else:
 		test_full_game()
 
