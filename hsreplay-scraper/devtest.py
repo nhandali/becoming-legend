@@ -1,9 +1,33 @@
 import json
 from collections import defaultdict
 
+"""
+Link to page describing the deck we are using:
+https://hsreplay.net/decks/Ius8aeryh7bo0KDV00Koqe/
+
+Wanna use some data from HSReplay? Well have I got something for you!
+(All files are in JSON)
+
+List of all decks HSReplay tracks:
+https://hsreplay.net/analytics/query/list_decks_by_win_rate/?GameType=RANKED_STANDARD&RankRange=LEGEND_THROUGH_TWENTY
+
+List of mulligan rules for our deck:
+https://hsreplay.net/analytics/query/single_deck_mulligan_guide/?GameType=RANKED_STANDARD&RankRange=ALL&Region=ALL&deck_id=Ius8aeryh7bo0KDV00Koqe
+
+List of base winrate by opponent class for our deck:
+https://hsreplay.net/analytics/query/single_deck_base_winrate_by_opponent_class/?GameType=RANKED_STANDARD&RankRange=ALL&Region=ALL&deck_id=Ius8aeryh7bo0KDV00Koqe
+
+List of popularity (AND WIN RATE!!!) of all the cards in the game:
+https://hsreplay.net/analytics/query/card_played_popularity_report/?GameType=RANKED_STANDARD&RankRange=ALL&TimeRange=LAST_14_DAYS
+"""
+
 with open("./cards_collectible.json") as cards_file:
     card_data = json.load(cards_file)
 with open("./tracked_decks.json") as hsreplay_file:
+    """
+    NOTE: To update this file, redownload from the following link:
+    https://hsreplay.net/analytics/query/list_decks_by_win_rate/?GameType=RANKED_STANDARD&RankRange=LEGEND_THROUGH_TWENTY
+    """
     hsreplay_data = json.load(hsreplay_file)
 
 """
