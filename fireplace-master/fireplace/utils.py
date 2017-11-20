@@ -186,6 +186,8 @@ def setup_game() -> ".game.Game":
 """
 def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 	while True:
+		if game.ended:
+			break
 		# iterate over our hand and play whatever is playable
 		for card in player.hand:
 			if card.is_playable():
@@ -241,6 +243,8 @@ def play_turn(game: ".game.Game") -> ".game.Game":
 	if player == game.players[0]: return faceFirstLegalMovePlayer(player, game)
 
 	while True:
+		if game.ended:
+			break
 		print(player.hero.damage)
 		heropower = player.hero.power
 		if heropower.is_usable() and random.random() < 0.1:

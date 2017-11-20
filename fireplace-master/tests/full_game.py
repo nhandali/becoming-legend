@@ -9,7 +9,7 @@ def test_full_game():
 	try:
 		count = 0
 		total = 0
-		for _ in range(500):
+		for _ in range(1):
 			game = play_full_game()
 			if game.loser != game.players[0] :
 				count += 1
