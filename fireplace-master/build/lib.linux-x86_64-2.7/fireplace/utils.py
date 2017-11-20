@@ -5,7 +5,7 @@ from importlib import import_module
 from pkgutil import iter_modules
 from typing import List
 from xml.etree import ElementTree
-from hearthstone.enums import CardClass, CardType, Rarity
+from hearthstone.enums import CardClass, CardType
 
 
 # Autogenerate the list of cardset modules
@@ -78,9 +78,8 @@ def random_draft(card_class: CardClass, exclude=[]):
 		if not cls.collectible:
 			continue
 		if cls.type == CardType.HERO:
-			if cls.rarity != Rarity.LEGENDARY:
-				# Heroes are collectible...
-				continue
+			# Heroes are collectible...
+			continue
 		if cls.card_class and cls.card_class != card_class:
 			continue
 		collection.append(cls)
@@ -168,11 +167,10 @@ def weighted_card_choice(source, weights: List[int], card_sets: List[str], count
 def setup_game() -> ".game.Game":
 	from .game import Game
 	from .player import Player
-	from fireplace.card import princeWarlock
 
-	deck1 = princeWarlock()
+	deck1 = random_draft(CardClass.MAGE)
 	deck2 = random_draft(CardClass.WARRIOR)
-	player1 = Player("Player1", deck1, CardClass.WARLOCK.default_hero)
+	player1 = Player("Player1", deck1, CardClass.MAGE.default_hero)
 	player2 = Player("Player2", deck2, CardClass.WARRIOR.default_hero)
 
 	game = Game(players=(player1, player2))
@@ -180,71 +178,11 @@ def setup_game() -> ".game.Game":
 
 	return game
 
-"""
-	This player tries to play cards before hero powering, it also plays
-	the first card that's playable, and keeps playing cards until it can't anymore.
-	It also always goes face, unless there are taunts in the way.
-"""
-def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
-	while True:
-		if game.ended:
-			break
-		# iterate over our hand and play whatever is playable
-		for card in player.hand:
-			if card.is_playable():
-				target = None
-				if card.must_choose_one:
-					card = random.choice(card.choose_cards)
-				if card.requires_target():
-					if player.opponent.hero in card.targets:
-						target = player.opponent.hero
-					else:
-						target = card.targets[0]
-				print("Playing %r on %r" % (card, target))
-				card.play(target=target)
-				if game.ended:
-					game.end_turn()
-					return game
-				if player.choice:
-					choice = random.choice(player.choice.cards)
-					print("Choosing card %r" % (choice))
-					player.choice.choose(choice)
-
-				continue
-
-		heropower = player.hero.power
-		if heropower.is_usable():
-			if heropower.requires_target():
-				if player.opponent.hero in heropower.targets:
-					heropower.use(target=player.opponent.hero)
-				else:
-					heropower.use(target=heropower.targets[0])
-			else:
-				heropower.use()
-			continue
-
-		# For all characters, try to attack hero if possible
-		for character in player.characters:
-			if character.can_attack():
-				if character.can_attack(target=player.opponent.hero):
-					character.attack(player.opponent.hero)
-				else:
-					character.attack(character.targets[0])
-				if game.ended:
-					break
-		break
-
-	game.end_turn()
-	return game
 
 def play_turn(game: ".game.Game") -> ".game.Game":
 	player = game.current_player
-	if player == game.players[0]: return faceFirstLegalMovePlayer(player, game)
 
 	while True:
-		if game.ended:
-			break
-		print(player.hero.damage)
 		heropower = player.hero.power
 		if heropower.is_usable() and random.random() < 0.1:
 			if heropower.requires_target():
@@ -275,8 +213,6 @@ def play_turn(game: ".game.Game") -> ".game.Game":
 		for character in player.characters:
 			if character.can_attack():
 				character.attack(random.choice(character.targets))
-				if game.ended:
-					break
 
 		break
 
@@ -295,7 +231,5 @@ def play_full_game() -> ".game.Game":
 
 	while True:
 		play_turn(game)
-		if game.ended:
-			print(game.loser)
-			break
+
 	return game

@@ -1,5 +1,7 @@
 TODOS:
 
+Code up new cards interactions
+
 1. Understand simulator (how to interact with cards)
 2. Grab card data from hsreplay -> predict which cards opponent has in hand
 3. come up with model/algorithm to tackle task
