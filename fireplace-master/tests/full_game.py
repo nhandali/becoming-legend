@@ -15,7 +15,6 @@ def test_full_game(numgames = 1):
 				count += 1
 			total += 1
 		print("Winrate: ", count/float(total))
-		print(numgames)
 	except GameOver:
 		print("Game completed normally.")
 

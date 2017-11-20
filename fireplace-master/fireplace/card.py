@@ -13,6 +13,7 @@ THE_COIN = "GAME_005"
 
 
 def Card(id):
+
 	data = cards.db[id]
 	subclass = {
 		CardType.HERO: Hero,
@@ -65,6 +66,7 @@ class BaseCard(BaseEntity):
 	delayed_destruction = False
 
 	def __init__(self, data):
+		self.created = False
 		self.data = data
 		super().__init__()
 		self.requirements = data.requirements.copy()

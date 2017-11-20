@@ -36,7 +36,15 @@ def test_event_queue_heal():
 	assert game.player1.hero.health == 30
 	assert game.player2.hero.health == 28
 
-
+#code to test if we can tell if a card is discovered
+def test_discover():
+	game = prepare_game()
+	book = game.player1.give("KAR_009")
+	book.play()
+	for card in game.player1.hand:
+		print(card)
+		print(card.created)
+test_discover()
 def test_event_queue_summon():
 	game = prepare_empty_game()
 	game.player1.give(WISP).play()
