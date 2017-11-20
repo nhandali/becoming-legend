@@ -2,6 +2,11 @@ import json
 from collections import defaultdict
 
 """
+Note to self on how to get virtual environment started:
+With Terminal in the base directory, type
+"source hs/bin/activate"
+And to deactivate the virtual environment, just type "deactivate" anywhere.
+
 Link to page describing the deck we are using:
 https://hsreplay.net/decks/Ius8aeryh7bo0KDV00Koqe/
 
@@ -17,7 +22,7 @@ https://hsreplay.net/analytics/query/single_deck_mulligan_guide/?GameType=RANKED
 List of base winrate by opponent class for our deck:
 https://hsreplay.net/analytics/query/single_deck_base_winrate_by_opponent_class/?GameType=RANKED_STANDARD&RankRange=ALL&Region=ALL&deck_id=Ius8aeryh7bo0KDV00Koqe
 
-List of popularity (AND WIN RATE!!!) of all the cards in the game:
+List of popularity (AND WIN RATE!!!) of all the cards in the game (useful for evaluation functions):
 https://hsreplay.net/analytics/query/card_played_popularity_report/?GameType=RANKED_STANDARD&RankRange=ALL&TimeRange=LAST_14_DAYS
 """
 
@@ -41,6 +46,13 @@ def raw_info():
 
     print(hsreplay_data["series"]["data"]["WARLOCK"][0])
     print(hsreplay_data["series"]["data"]["WARLOCK"][0]["deck_list"])
+
+"""
+Convenience function for looping over all the classes, since
+HSReplay splits deck data by class
+"""
+def get_all_classes():
+    return [class_name for class_name in hsreplay_data["series"]["data"]]
 
 """
 IMPORTANT!!!
@@ -85,30 +97,37 @@ The following code loops through all the warlock decks in the HSReplay data file
 It then creates a frequency table of the cards as they appear across all Warlock decks in that file
 and outputs a sorted list by frequency of all the cards in the current meta Walock decks
 (which is why we have to create the card_tuples and sort it)
-It currently doesn't take into account relative frequency between decks but that would be easy
-to fix: just change frequencyTable[card_info["name"]] += card[1]
-                 to frequencyTable[card_info["name"]] += card[1] * deck["total_games"]
+It currently takes into account relative frequency between decks
+to remove: just change frequencyTable[card_info["name"]] += card[1] * deck["total_games"]
+                    to frequencyTable[card_info["name"]] += card[1]
 """
-def printWarlockCardFreqs():
+def computeCardFreqs(class_name):
     frequencyTable = defaultdict(int)
-    for deck in hsreplay_data["series"]["data"]["WARLOCK"]:
+    totalCards = 0
+    for deck in hsreplay_data["series"]["data"][class_name]:
         for card in decode_deck_list(deck["deck_list"]):
             card_info = get_card_info(card[0])
-            frequencyTable[card_info["name"]] += card[1]
+            frequencyTable[card_info["name"]] += card[1] * deck["total_games"]
+            totalCards += card[1] * deck["total_games"]
 
+    return (frequencyTable, totalCards)
+
+    """
+    THIS CODE PRINTS THE FREQUENCIES IN CORRECT ORDER
     card_tuples = []
     for card_name in frequencyTable:
         card_tuples.append((frequencyTable[card_name], card_name))
 
     for item in reversed(sorted(card_tuples)):
         print(item[1], " has frequency ", item[0])
+    """
 
-def buildWarlockCardMatchings():
+def buildCardMatchings(class_name):
     """
     Want to have e.g. key = "Flame Imp", value = {"cardname": relativeFreq}
     """
     matchings = defaultdict(lambda: defaultdict(int))
-    for deck in hsreplay_data["series"]["data"]["WARLOCK"]:
+    for deck in hsreplay_data["series"]["data"][class_name]:
         for first_card in decode_deck_list(deck["deck_list"]):
             first_card_info = get_card_info(first_card[0])
             for second_card in decode_deck_list(deck["deck_list"]):
@@ -138,15 +157,63 @@ def getCardsThatAppearAlongside(card_names):
                 matchings[card] += deck_cards[card] * deck["total_games"]
     return matchings
 
+def kNearestDecks(observed_cards, opponent_class):
+    """
+    To make this frequency thing even better, something I thought of:
+    If they have a card that's pretty rare in their deck but appears in other decks,
+    they should be prioritised somehow.
+    e.g. if a Golakka crawler appears, that's much more significant than if a Voidwalker appears!
+    How do we fix this?
+    Maybe we should have a similarity score based on the relative INfrequency of cards,
+    rather than the current distance based on the relative frequency of cards.
+    """
+    frequencyTable, totalCards = computeCardFreqs(opponent_class)
+    def relativeFreq(card_name):
+        if card_name not in frequencyTable:
+            return 1e-6
+        else:
+            return frequencyTable[card_name] / totalCards
+    allDecks = []
+    for deck in hsreplay_data["series"]["data"][opponent_class]:
+        distance = 0.
+        for card in decode_deck_list(deck["deck_list"]):
+            card_info = get_card_info(card[0])
+            if card_info["name"] not in observed_cards:
+                distance += card[1] * 1./relativeFreq(card_info["name"])
+        allDecks.append((distance, decode_deck_list(deck["deck_list"])))
+    return sorted(allDecks)
+
 if __name__ == "__main__":
     #print(get_card_info(42743)) # prints info for Despicable Dreadlord
+
     """
-    matchings = buildWarlockCardMatchings()
+    This code computes a frequency table for how often pairs of cards are seen
+    in decks for a specific class
+    matchings = buildCardMatchings("WARLOCK")
     for card in matchings["Flame Imp"]:
         print(card, " has relative frequency with Flame Imp of ", matchings["Flame Imp"][card])
     """
-    matchings = getCardsThatAppearAlongside(["Flame Imp", "Despicable Dreadlord", "Patches the Pirate"])
 
-    del(matchings["Flame Imp"])
+    """
+    This code computes a frequency table of all the cards that
+    appear in decks containing EVERY card in the list that is
+    passed in to this method
+    matchings = getCardsThatAppearAlongside(["Flame Imp", "Despicable Dreadlord", "Patches the Pirate"])
+    #del(matchings["Flame Imp"])
     for thing in matchings:
         print(thing + ",", matchings[thing])
+    """
+
+    seenCards = ["Flame Imp", "Despicable Dreadlord", "Patches the Pirate", "Prince Keleseth", "Bloodreaver Gul'dan"]
+    print("Given the cards", seenCards)
+    print("The opponent's most likely decks are:")
+    print("")
+    count = 0
+    for distance, deck in kNearestDecks(seenCards, opponent_class="WARLOCK"):
+        print("The following deck has distance", distance)
+        for card in deck:
+            card_info = get_card_info(card[0])
+            print("-", card_info["name"], "x" + str(card[1]))
+        count += 1
+        if count == 5:
+            break
