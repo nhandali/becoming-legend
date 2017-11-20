@@ -1,5 +1,6 @@
 import json
 from collections import defaultdict
+import copy
 
 """
 Note to self on how to get virtual environment started:
@@ -175,11 +176,49 @@ def kNearestDecks(observed_cards, opponent_class):
             return frequencyTable[card_name] / totalCards
     allDecks = []
     for deck in hsreplay_data["series"]["data"][opponent_class]:
+        # observed_cards_copy will eventually be modified so that
+        # we only have the cards that the opponent played that don't
+        # appear in this prospective deck at the end
+        observed_cards_copy = copy.deepcopy(observed_cards)
         distance = 0.
         for card in decode_deck_list(deck["deck_list"]):
             card_info = get_card_info(card[0])
-            if card_info["name"] not in observed_cards:
+            if card_info["name"] not in observed_cards_copy:
+                # This card hasn't been played - increases distance
                 distance += card[1] * 1./relativeFreq(card_info["name"])
+            else:
+                # This card has been played - decreases distance
+                observed_cards_copy.remove(card_info["name"])
+                # If there was only one instance of that card in the deck...
+                # and there are no more of that card, great!
+                # Otherwise, if there are two instances of that card in the deck
+                # and two instances in the observed cards, great!
+                if card[1] == 1:
+                    # only one copy of that card in the deck
+                    if card_info["name"] not in observed_cards_copy:
+                        # good, this matches!
+                        distance -= card[1] * 1./relativeFreq(card_info["name"])
+                    else:
+                        distance -= 1 * 1./relativeFreq(card_info["name"])
+                        # Doesn't match.
+                        # net result - remove distance since card matches,
+                        # then add distance since card doesn't match.
+                else:
+                    # two copies of that card in the deck
+                    if card_info["name"] not in observed_cards_copy:
+                        # only one copy of that card has been played
+                        # net result - zero
+                        # (see the code below for the negation to this distance removal)
+                        distance -= 1 * 1./relativeFreq(card_info["name"])
+                    else:
+                        # This is great! 2 copies in the deck AND
+                        # the opponent has played two copies!
+                        observed_cards_copy.remove(card_info["name"])
+                        distance -= card[1] * 1./relativeFreq(card_info["name"])
+        # now observed_cards_copy only has cards that didn't appear in this deck
+        for unseen_card in observed_cards_copy:
+            distance += 1 * 1./relativeFreq(unseen_card)
+
         allDecks.append((distance, decode_deck_list(deck["deck_list"])))
     return sorted(allDecks)
 
