@@ -91,7 +91,8 @@ class BaseGame(Entity):
 		self.manager.action_end(type, source)
 
 		if self.ended:
-			raise GameOver("The game has ended.")
+			# raise GameOver("The game has ended.")
+			return True
 
 		if type != BlockType.PLAY:
 			self._action_stack -= 1
@@ -171,6 +172,7 @@ class BaseGame(Entity):
 			if player.playstate in (PlayState.CONCEDED, PlayState.DISCONNECTED):
 				player.playstate = PlayState.LOSING
 			if player.playstate == PlayState.LOSING:
+				self.loser = player
 				gameover = True
 
 		if gameover:
