@@ -1,6 +1,7 @@
 import json
 from collections import defaultdict
 import copy
+import random
 
 """
 Note to self on how to get virtual environment started:
@@ -252,6 +253,63 @@ if __name__ == "__main__":
         print(thing + ",", matchings[thing])
     """
 
+    # We want to sort all the decks by frequency
+    deck_frequencies = []
+    total_freq = 0
+    for deck in hsreplay_data["series"]["data"]["WARLOCK"]:
+        total_freq += deck["total_games"]
+        deck_frequencies.append((deck["total_games"], decode_deck_list(deck["deck_list"])))
+    deck_frequencies = sorted(deck_frequencies)[:-36:-1]
+    tested_frequencies = 0
+    for f, _ in deck_frequencies:
+        tested_frequencies += f
+    print("Testing on the most frequent " + str((tested_frequencies * 100 / total_freq)) + "%" + " of decks")
+
+    def match_status(one_deck, another_deck):
+        match_num = 0.
+        for card in one_deck:
+            for another_card in another_deck:
+                if card[0] == another_card[0]:
+                    match_num += 1
+                    if card[1] == 2 and card[1] == another_card[1]:
+                        match_num += 1
+                    break
+        return match_num / 30
+
+    percentage = 0.
+    print("Testing the most frequent decks...")
+    for _ in range(100):
+        total_matches = 0
+        total_tested = 0
+
+        for frequency, deck in deck_frequencies:
+            # Now we have to test this frequency & deck
+            sample = random.sample(deck, 7)
+            seen_cards = []
+            for card in sample:
+                card_name = get_card_info(card[0])["name"]
+                for i in range(card[1]):
+                    seen_cards.append(card_name)
+            # Now we've built up seen cards, test it!
+            count = 0
+            similarity = 0.
+            for distance, potential_deck in kNearestDecks(seen_cards, "WARLOCK"):
+                count += 1
+                #if deck == potential_deck:
+                    #print("Match on deck", str(count) + "!")
+                similarity += match_status(deck, potential_deck)
+                    #break
+                if count == 5:
+                    #print("No match in the top", count, "k nearest decks for deck with frequency", frequency)
+                    total_matches += similarity / 5
+                    break
+            total_tested += 1
+        print("Percentage correct answers:", (total_matches*100/total_tested))
+        percentage += (total_matches*100/total_tested)
+    print("-----------------------------------")
+    print("Average classification percentage: " + str((percentage / 100)) + "%")
+
+    """
     #seenCards = ["Flame Imp", "Despicable Dreadlord", "Patches the Pirate", "Prince Keleseth", "Bloodreaver Gul'dan"]
     seenCards = ["Stonehill Defender", "Stonehill Defender", "Bloodmage Thalnos", "Elise the Trailblazer", "Dirty Rat", "Dirty Rat", "Skulking Geist"]
     print("Given the cards", seenCards)
@@ -266,3 +324,4 @@ if __name__ == "__main__":
         count += 1
         if count == 5:
             break
+    """
