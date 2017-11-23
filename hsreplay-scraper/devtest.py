@@ -253,6 +253,15 @@ if __name__ == "__main__":
         print(thing + ",", matchings[thing])
     """
 
+    # these signature IDs are from the archetype API available here:
+    # https://hsreplay.net/api/v1/archetypes/?format=api
+    zoolock_signature_ids = [631,1090,974,45340,39740,42790,42395,40465,38452,680]
+    print("Zoolock signature cards:")
+    for card_id in zoolock_signature_ids:
+        card_info = get_card_info(card_id)
+        print("-", card_info["name"])
+    print(".......................")
+
     # We want to sort all the decks by frequency
     deck_frequencies = []
     total_freq = 0
