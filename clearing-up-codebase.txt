@@ -23,7 +23,6 @@ File Notes:
 							- one would think that it's the one in BaseGame, *BUT* it's *NOT*. It calls the one in CoinRules
 		- random_draft()
 			- fixed random draft, works for all cards now
-			- *** Need to create another function in this file that hand-picks cards to make the zoo lock deck ***
 
 	fireplace/game.py:
 		- see the sections above with *** IMPORTANT *** tab
