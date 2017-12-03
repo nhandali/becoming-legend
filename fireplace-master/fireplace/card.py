@@ -27,6 +27,7 @@ def Card(id):
 		subclass = Secret
 	return subclass(data)
 
+#Lets not hard code
 def princeWarlock():
 	cards = []
 	cards.append(Card("ICC_092"))
