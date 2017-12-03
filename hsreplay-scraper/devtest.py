@@ -2,6 +2,7 @@ import json
 from collections import defaultdict
 import copy
 import random
+import cmd
 
 """
 Note to self on how to get virtual environment started:
@@ -79,6 +80,11 @@ def get_card_info(card_id):
         if card["dbfId"] == card_id:
             _card_info_cache[card_id] = card
             return card
+
+def get_card_name(card_id):
+    for card in card_data:
+        if card["id"] == card_id:
+            return card["name"]
 
 """
 This method prints the card info for a single deck
@@ -223,7 +229,68 @@ def kNearestDecks(observed_cards, opponent_class):
         allDecks.append((distance, decode_deck_list(deck["deck_list"])))
     return sorted(allDecks)
 
+def get_keleseth_deck():
+    our_deck = []
+    for deck in hsreplay_data["series"]["data"]["WARLOCK"]:
+        if deck["deck_id"] == "beV23vng1BqTLJdHa2ZuBb":
+            for card in decode_deck_list(deck["deck_list"]):
+                actual_info = get_card_info(card[0])
+                for i in range(card[1]):
+                    our_deck.append(actual_info["id"])
+    return our_deck
+
+class REPL(cmd.Cmd):
+    history = []
+
+    def helper_history(self, func, line):
+        pass
+
+    def do_EOF(self, line):
+        print("")
+        return True
+
+    def do_card(self, line):
+        """
+        Prints information about the given card.
+        Card can be supplied by ID or dbfId.
+        """
+
+        if line.isdigit():
+            result = get_card_info(int(line))["name"]
+        else:
+            result = get_card_name(line)
+
+        if result:
+            self.history.append(result)
+            print("(" + str(len(self.history)) + ")", result)
+        else:
+            print("Card not found.")
+
+    def do_array(self, line):
+        """
+        Packs the given history items into a list.
+        """
+        result = []
+        for item in line.split():
+            if item.isdigit() and int(item) <= len(self.history) and int(item) > 0:
+                result.append(self.history[int(item) - 1])
+            else:
+                print("Error:", item, "is not a valid history item")
+                return False
+        self.history.append(result)
+        print("(" + str(len(self.history)) + ")", result)
+
+    def do_eval(self, line):
+        """
+        Runs the python eval() command on the input.
+        You better know what you're doing!
+        """
+        eval(line)
+
 if __name__ == "__main__":
+    REPL().cmdloop()
+    sys.exit()
+
     #print(get_card_info(42743)) # prints info for Despicable Dreadlord
     """
     frequencyTable, totalCards = computeCardFreqs("WARLOCK")
@@ -252,6 +319,9 @@ if __name__ == "__main__":
     for thing in matchings:
         print(thing + ",", matchings[thing])
     """
+
+    print(get_card_name("KAR_089"))
+    eval("print(get_card_name('CS2_106'))")
 
     # these signature IDs are from the archetype API available here:
     # https://hsreplay.net/api/v1/archetypes/?format=api
