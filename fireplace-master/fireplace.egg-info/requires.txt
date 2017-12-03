@@ -1,0 +1,5 @@
+hearthstone
+
+[tests]
+pytest
+pytest-benchmark[aspect]

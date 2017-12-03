@@ -13,6 +13,7 @@ THE_COIN = "GAME_005"
 
 
 def Card(id):
+
 	data = cards.db[id]
 	subclass = {
 		CardType.HERO: Hero,
@@ -26,12 +27,46 @@ def Card(id):
 		subclass = Secret
 	return subclass(data)
 
+def princeWarlock():
+	cards = []
+	cards.append(Card("ICC_092"))
+	cards.append(Card("ICC_092"))
+	cards.append(Card("NEW1_025"))
+	cards.append(Card("NEW1_025"))
+	cards.append(Card("UNG_809"))
+	cards.append(Card("UNG_809"))
+	cards.append(Card("EX1_319"))
+	cards.append(Card("EX1_319"))
+	cards.append(Card("KAR_089"))
+	cards.append(Card("KAR_089"))
+	cards.append(Card("CFM_637"))
+	cards.append(Card("EX1_308"))
+	cards.append(Card("EX1_308"))
+	cards.append(Card("CS2_065"))
+	cards.append(Card("CS2_065"))
+	cards.append(Card("ICC_851"))
+	cards.append(Card("OG_113"))
+	cards.append(Card("OG_113"))
+	cards.append(Card("UNG_075"))
+	cards.append(Card("UNG_075"))
+	cards.append(Card("ICC_466"))
+	cards.append(Card("ICC_466"))
+	cards.append(Card("EX1_048"))
+	cards.append(Card("ICC_075"))
+	cards.append(Card("ICC_075"))
+	cards.append(Card("EX1_310"))
+	cards.append(Card("EX1_310"))
+	cards.append(Card("ICC_705"))
+	cards.append(Card("ICC_705"))
+	cards.append(Card("ICC_831"))
+	return cards
 
 class BaseCard(BaseEntity):
 	Manager = CardManager
 	delayed_destruction = False
 
 	def __init__(self, data):
+		self.created = False
 		self.data = data
 		super().__init__()
 		self.requirements = data.requirements.copy()
@@ -85,7 +120,7 @@ class BaseCard(BaseEntity):
 		caches = {
 			Zone.HAND: self.controller.hand,
 			Zone.DECK: self.controller.deck,
-			Zone.DISCARD: self.controller.discarded,
+			Zone.REMOVEDFROMGAME: self.controller.discarded,
 			Zone.GRAVEYARD: self.controller.graveyard,
 			Zone.SETASIDE: self.game.setaside,
 		}
@@ -215,7 +250,7 @@ class PlayableCard(BaseCard, Entity, TargetableByAuras):
 
 	def discard(self):
 		self.log("Discarding %r" % (self))
-		self.zone = Zone.DISCARD
+		self.zone = Zone.REMOVEDFROMGAME
 
 	def draw(self):
 		if len(self.controller.hand) >= self.controller.max_hand_size:

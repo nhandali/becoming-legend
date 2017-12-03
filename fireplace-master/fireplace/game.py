@@ -91,14 +91,16 @@ class BaseGame(Entity):
 		self.manager.action_end(type, source)
 
 		if self.ended:
-			raise GameOver("The game has ended.")
+			# raise GameOver("The game has ended.")
+			return True
 
 		if type != BlockType.PLAY:
 			self._action_stack -= 1
 		if not self._action_stack:
 			self.log("Empty stack, refreshing auras and processing deaths")
 			self.refresh_auras()
-			self.process_deaths()
+			if self.process_deaths():
+				return True
 
 	def action_block(self, source, actions, type, index=-1, target=None, event_args=None):
 		self.action_start(type, source, index, target)
@@ -144,7 +146,8 @@ class BaseGame(Entity):
 			for card in cards:
 				card.zone = Zone.GRAVEYARD
 				actions.append(Death(card))
-			self.check_for_end_game()
+			if self.check_for_end_game():
+				return True
 			self.action_end(type, self)
 			self.trigger(self, actions, event_args=None)
 
@@ -171,6 +174,7 @@ class BaseGame(Entity):
 			if player.playstate in (PlayState.CONCEDED, PlayState.DISCONNECTED):
 				player.playstate = PlayState.LOSING
 			if player.playstate == PlayState.LOSING:
+				self.loser = player
 				gameover = True
 
 		if gameover:
@@ -187,6 +191,7 @@ class BaseGame(Entity):
 			self.manager.step(self.next_step, Step.FINAL_WRAPUP)
 			self.manager.step(self.next_step, Step.FINAL_GAMEOVER)
 			self.manager.step(self.next_step)
+		return gameover
 
 	def queue_actions(self, source, actions, event_args=None):
 		"""
@@ -278,6 +283,8 @@ class BaseGame(Entity):
 		self.begin_turn(self.player1)
 
 	def end_turn(self):
+		if self.ended:
+			return
 		return self.queue_actions(self, [EndTurn(self.current_player)])
 
 	def _end_turn(self):
