@@ -7,25 +7,31 @@ import collections
 
 def test_full_game(numgames = 1):
 	try:
+		alpha = .4
 		weights = collections.defaultdict(int)
-		count = 0
-		total = 0
-		for _ in range(numgames):
-			game = play_full_game()
-			if game.loser != game.players[0] :
-				count += 1
-				for card in game.startCards:
-					weights[card.id] +=1
-				for card in game.oppCards:
-					weights[card.id] -=1
-			else:
-				for card in game.startCards:
-					weights[card.id] -=1
-				for card in game.oppCards:
-					weights[card.id] +=1
-			total += 1
-		print("Winrate: ", count/float(total))
-		print("Card Weights", weights)
+		winrate = 0
+		while True:
+			count = 0
+			total = 0
+			for _ in range(numgames):
+				game = play_full_game(weights)
+				if game.loser != game.players[0] :
+					count += 1
+					for card in game.startCards:
+						weights[card.id] +=alpha
+					for card in game.oppCards:
+						weights[card.id] -= alpha
+				else:
+					for card in game.startCards:
+						weights[card.id] -= alpha
+					for card in game.oppCards:
+						weights[card.id] += alpha
+				total += 1
+			print("Winrate: ", count/float(total))
+			print("Card Weights", weights)
+			if abs(count/float(total) - winrate) < .001:
+				break
+			winrate = count/float(total)
 	except GameOver:
 		print("Game completed normally.")
 

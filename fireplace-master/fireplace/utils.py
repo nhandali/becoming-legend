@@ -316,21 +316,21 @@ def play_turn(game: ".game.Game") -> ".game.Game":
 	return game
 
 #our mulligan strategy
-def mulligan(hand):
-	weights = {'ICC_092': 270, 'EX1_048': -65, 'OG_113': -489, 'UNG_809': -129, 'EX1_319': 842, 'UNG_075': 179, 'ICC_705': -374, 'CS2_065': 374, 'ICC_831': -188, 'CFM_637': -52, 'EX1_308': -683, 'EX1_310': 132, 'NEW1_025': -228, 'ICC_466': -128, 'ICC_075': -349, 'KAR_089': 83, 'ICC_851': 82}
+def mulligan(hand, weights):
+
 	toMulligan = []
 	for card in hand:
 		if weights[card.id] < 0:
 			toMulligan.append(card)
 	return toMulligan
-def play_full_game() -> ".game.Game":
+def play_full_game(weights) -> ".game.Game":
 	import copy
 	game = setup_game()
 
 	for player in game.players:
 		#print("Can mulligan %r" % (player.choice.cards))
 		if player == game.players[0]:
-			player.choice.choose(*mulligan(player.choice.cards))
+			player.choice.choose(*mulligan(player.choice.cards, weights))
 		else:
 			mull_count = random.randint(0, len(player.choice.cards))
 			cards_to_mulligan = random.sample(player.choice.cards, mull_count)
