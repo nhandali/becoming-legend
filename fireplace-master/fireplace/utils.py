@@ -204,6 +204,7 @@ def featureExtractor(player, game:".game.Game") -> ".game.Game":
 	features["mana_left"] = player.mana
 	features["num_minions"] = len(player.field)
 	features["their_minions"] = len(player.opponent.field)
+	return features
 
 
 def minimaxPlayer(player, game: ".game.Game") -> ".game.Game":
