@@ -308,9 +308,9 @@ if __name__ == "__main__":
                     #print("Match on deck", str(count) + "!")
                 similarity += match_status(deck, potential_deck)
                     #break
-                if count == 5:
+                if count == 1: # Change this if you want to test on more than just the nearest deck
                     #print("No match in the top", count, "k nearest decks for deck with frequency", frequency)
-                    total_matches += similarity / 5
+                    total_matches += similarity / 1
                     break
             total_tested += 1
         print("Percentage correct answers:", (total_matches*100/total_tested))
