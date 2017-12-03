@@ -19,17 +19,16 @@ def test_full_game(numgames = 1):
 					count += 1
 					for card in game.startCards:
 						weights[card.id] +=alpha
-					for card in game.oppCards:
-						weights[card.id] -= alpha
+					# for card in game.oppCards:
+					# 	weights[card.id] -= alpha
 				else:
 					for card in game.startCards:
 						weights[card.id] -= alpha
-					for card in game.oppCards:
-						weights[card.id] += alpha
+					# for card in game.oppCards:
+					# 	weights[card.id] += alpha
 				total += 1
 			print("Winrate: ", count/float(total))
 			print("Card Weights", weights)
-			break
 			if abs(count/float(total) - winrate) < .001:
 				break
 			winrate = count/float(total)

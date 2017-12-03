@@ -180,6 +180,7 @@ def setup_game() -> ".game.Game":
 
 	return game
 
+#defines a feature extractor that generate a feature vector
 def featureExtractor(player, game:".game.Game") -> ".game.Game":
 	features = collections.defualtdict(int)
 	features['our_hp'] = player.hero.health + player.hero.armor
@@ -207,8 +208,7 @@ def featureExtractor(player, game:".game.Game") -> ".game.Game":
 	return features
 
 
-def minimaxPlayer(player, game: ".game.Game") -> ".game.Game":
-	pass
+
 """
 	This player tries to play cards before hero powering, it also plays
 	the first card that's playable, and keeps playing cards until it can't anymore.
@@ -318,7 +318,7 @@ def play_turn(game: ".game.Game") -> ".game.Game":
 
 #our mulligan strategy
 def mulligan(hand, weights):
-	weights = {'OG_113': -69.59999999999991, 'UNG_809': -41.999999999999915, 'CS2_065': 60.39999999999985, 'NEW1_025': -35.59999999999994, 'ICC_466': -25.99999999999997, 'EX1_310': 34.79999999999994, 'UNG_075': 38.39999999999993, 'ICC_075': -61.599999999999845, 'ICC_092': 10.400000000000004, 'ICC_851': -4.799999999999999, 'EX1_048': -14.000000000000005, 'ICC_831': -29.59999999999996, 'EX1_319': 112.80000000000052, 'CFM_637': -12.400000000000006, 'ICC_705': -61.19999999999985, 'GAME_005': -146.800000000001, 'EX1_308': -76.80000000000001, 'KAR_089': 29.999999999999957}
+	#weights = {'OG_113': -69.59999999999991, 'UNG_809': -41.999999999999915, 'CS2_065': 60.39999999999985, 'NEW1_025': -35.59999999999994, 'ICC_466': -25.99999999999997, 'EX1_310': 34.79999999999994, 'UNG_075': 38.39999999999993, 'ICC_075': -61.599999999999845, 'ICC_092': 10.400000000000004, 'ICC_851': -4.799999999999999, 'EX1_048': -14.000000000000005, 'ICC_831': -29.59999999999996, 'EX1_319': 112.80000000000052, 'CFM_637': -12.400000000000006, 'ICC_705': -61.19999999999985, 'GAME_005': -146.800000000001, 'EX1_308': -76.80000000000001, 'KAR_089': 29.999999999999957}
 	toMulligan = []
 	for card in hand:
 		if weights[card.id] < 0:
