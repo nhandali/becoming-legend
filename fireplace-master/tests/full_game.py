@@ -9,8 +9,11 @@ def test_full_game(numgames = 1):
 	try:
 		alpha = .4
 		weights = collections.defaultdict(int)
+		winrates = []
+		numIterations = 0
 		winrate = 0
 		while True:
+			numIterations += 1
 			count = 0
 			total = 0
 			for _ in range(numgames):
@@ -29,10 +32,12 @@ def test_full_game(numgames = 1):
 				total += 1
 			print("Winrate: ", count/float(total))
 			print("Card Weights", weights)
-			break
-			if abs(count/float(total) - winrate) < .001:
+			
+			winrates.append((numIterations, count/float(total)))
+			if abs(count/float(total) - winrate) < .02:
 				break
 			winrate = count/float(total)
+		print(winrates)
 	except GameOver:
 		print("Game completed normally.")
 

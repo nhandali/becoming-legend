@@ -443,24 +443,24 @@ def TDLearningPlayer(player, game):
 		# we have to estimate the reward somehow
 		# depth limited search
 		# evaluation function (how similar is this to value function?)
-def minimax(player, game: ".game.Game") -> ".game.Game":
+# def minimax(player, game: ".game.Game") -> ".game.Game":
 
-	def getMaxAction(player, game,depth):
-		if game.ended:
-			if game.players[0] == game.loser:
-				return -100,None
-			else return 100,None
-		elif depth == 0:
-			return approximateV(player, game),None
-		elif player == game.players[0]:
-			#call getMaxAction on all possible actions
-			return max(values)
-		else:
-			#call get Max Action on all possible
-			return min(values)
-	value, actions = getMaxAction(player, game, 2)
-	for action in actions:
-		do action
+# 	def getMaxAction(player, game,depth):
+# 		if game.ended:
+# 			if game.players[0] == game.loser:
+# 				return -100,None
+# 			else return 100,None
+# 		elif depth == 0:
+# 			return approximateV(player, game),None
+# 		elif player == game.players[0]:
+# 			#call getMaxAction on all possible actions
+# 			return max(values)
+# 		else:
+# 			#call get Max Action on all possible
+# 			return min(values)
+# 	value, actions = getMaxAction(player, game, 2)
+# 	for action in actions:
+# 		do action
 """
 	This player tries to play cards before hero powering, it also plays
 	the first card that's playable, and keeps playing cards until it can't anymore.
@@ -523,11 +523,9 @@ def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 # Reflex agent to test against.
 def play_turn(game: ".game.Game") -> ".game.Game":
 	player = game.current_player
-	#if player == game.players[0]:
-	#return faceFirstLegalMovePlayer(player, game)
-
 	if player == game.players[0]:
-		return TDLearningPlayer(player, game)
+		return faceFirstLegalMovePlayer(player, game)
+		#return TDLearningPlayer(player, game)
 	else:
 		return faceFirstLegalMovePlayer(player, game)
 
@@ -602,5 +600,5 @@ def play_full_game(weights) -> ".game.Game":
 		if game.ended:
 			print("loser:" ,game.loser)
 			break
-	print("TD learning weights are now", _weights)
+	#print("TD learning weights are now", _weights)
 	return game
