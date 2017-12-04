@@ -368,7 +368,7 @@ def TDLearningPlayer(player, game):
 		#print(_weights)
 		# make a simple list of all the available actions at a given point
 		available_actions = get_all_available_actions(player)
-		print("====== CURRENT PLAYER MANA:", player.mana)
+		#print("====== CURRENT PLAYER MANA:", player.mana)
 
 		if not available_actions:
 			break
@@ -466,7 +466,7 @@ def TDLearningPlayer(player, game):
 						"""
 				# NOW perform the action
 				best_action_type, best_entity = available_actions[best_action_index]
-				print("============ BEST ACTION IS", best_action_type, "with", best_entity, "and target", stringify_target_info(player, best_action_type, best_entity, best_action_target), "(value " + str(best_value) + " )")
+				#print("============ BEST ACTION IS", best_action_type, "with", best_entity, "and target", stringify_target_info(player, best_action_type, best_entity, best_action_target), "(value " + str(best_value) + " )")
 				if best_action_type == "CARD":
 					target = None
 					card = best_entity
@@ -501,7 +501,7 @@ def TDLearningPlayer(player, game):
 			incorporateFeedback(phi, vpi, 0, -100)
 		else: # ASSUME TIES ARE IMPOSSIBLE FOR NOW
 			incorporateFeedback(phi, vpi, 0, 100)
-	print("=========================== TURN OVER")
+	#print("=========================== TURN OVER")
 
 	game.end_turn()
 	return game
@@ -632,8 +632,8 @@ def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 def play_turn(game: ".game.Game") -> ".game.Game":
 	player = game.current_player
 	if player == game.players[0]:
-		return faceFirstLegalMovePlayer(player, game)
-		#return TDLearningPlayer(player, game)
+		#return faceFirstLegalMovePlayer(player, game)
+		return TDLearningPlayer(player, game)
 	else:
 		return faceFirstLegalMovePlayer(player, game)
 
