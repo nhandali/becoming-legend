@@ -357,7 +357,7 @@ def stringify_target_info(player, action_type, action_entity, targetIndex):
 		return str(action_entity.targets[targetIndex])
 	return "(none)"
 
-epsilon = .05
+epsilon = 0.
 def TDLearningPlayer(player, game):
 	actions_taken = 0
 	while True:
