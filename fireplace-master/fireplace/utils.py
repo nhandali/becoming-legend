@@ -230,9 +230,6 @@ def featureExtractor2(player, game:".game.Game") -> ".game.Game":
 	features["our_minion"] = len(player.field)
 	features["their_minions"] = len(player.opponent.field)
 	return features
-<<<<<<< HEAD
-	
-=======
 
 def featureExtractor3(player, game:".game.Game") -> ".game.Game":
 	features = collections.defaultdict(int)
@@ -252,7 +249,6 @@ def featureExtractor3(player, game:".game.Game") -> ".game.Game":
 		features["no power advantage"] = 1
 	return features
 
->>>>>>> d2f77e4fd824f2fa13c56378a322b97262d64c49
 _weights = collections.defaultdict(float)
 def approximateV(player, game):
 	phi = featureExtractor3(player, game)
