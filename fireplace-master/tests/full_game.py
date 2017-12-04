@@ -12,6 +12,7 @@ def test_full_game(numgames = 1):
 		winrates = []
 		numIterations = 0
 		winrate = 0
+		td_weights = []
 		while True:
 			numIterations += 1
 			count = 0
@@ -28,15 +29,20 @@ def test_full_game(numgames = 1):
 						weights[card.id] -= alpha
 					# for card in game.oppCards:
 					# 	weights[card.id] += alpha
+				if i % 100 == 0: 
+					print("iteration", i)
+					print("td-weights", game.weights)
+					td_weights.append((i,game.weights))
 			print("Winrate: ", count/float(numgames))
-			print("Card Weights", weights)
-			print("td-weights", game.weights)
+			#print("Card Weights", weights)
 			
+			break
 			winrates.append((numIterations, count/float(numgames)))
 			if abs(count/float(numgames) - winrate) < .02:
 				break
 			winrate = count/float(numgames)
 		print(winrates)
+		print("td-weights", td_weights)
 	except GameOver:
 		print("Game completed normally.")
 

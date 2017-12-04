@@ -251,7 +251,8 @@ def featureExtractor3(player, game:".game.Game") -> ".game.Game":
 
 # initialise the weights to previously calculated optimal values
 _weights = collections.defaultdict(float)
-premade_weights = {'our_hp': 1.8673489184303163, 'opponent_hp': -3.037539913253422, 'bias': 10.412656424974298, 'our_hand': 2.153127765674754, 'their_hand': 0.9804111235739774, 'mana_left': -0.2590213226410433, 'our_power': 2.451094822043288, 'their_power': -1.3346142482372798, 'our_minion': -0.004790280977330176, 'their_minions': -2.4850411791904015}
+#premade_weights = {'our_hp': 1.8673489184303163, 'opponent_hp': -3.037539913253422, 'bias': 10.412656424974298, 'our_hand': 2.153127765674754, 'their_hand': 0.9804111235739774, 'mana_left': -0.2590213226410433, 'our_power': 2.451094822043288, 'their_power': -1.3346142482372798, 'our_minion': -0.004790280977330176, 'their_minions': -2.4850411791904015}
+premade_weights =  {'their_hand': 0.36995550582041914, 'our_hand': 0.9631924650032906, 'our_power': 2.5618985848510722, 'bias': 10.391136076838388, 'their_power': -0.6684936230427211, 'opponent_hp': -1.662752205387238, 'our_hp': 1.4978564673209003, 'our_minion': 0.5465476389621604, 'mana_left': 1.309791771696138, 'their_minions': -1.5804438382538541}
 for w in premade_weights:
 	_weights[w] = premade_weights[w]
 
@@ -493,14 +494,14 @@ def TDLearningPlayer(player, game):
 		# reward = 0, discount = 0.9
 		vprimepi = approximateV(player, game)
 		#print("vpi is", vpi, " vprimepi is ", vprimepi)
-		incorporateFeedback(phi, vpi, vprimepi, 0)
+		#incorporateFeedback(phi, vpi, vprimepi, 0)
 		vpi = vprimepi
 
-	if game.ended:
-		if player == game.loser:
-			incorporateFeedback(phi, vpi, 0, -100)
-		else: # ASSUME TIES ARE IMPOSSIBLE FOR NOW
-			incorporateFeedback(phi, vpi, 0, 100)
+	# if game.ended:
+	# 	if player == game.loser:
+	# 		#incorporateFeedback(phi, vpi, 0, -100)
+	# 	else: # ASSUME TIES ARE IMPOSSIBLE FOR NOW
+	# 		#incorporateFeedback(phi, vpi, 0, 100)
 	#print("=========================== TURN OVER")
 
 	game.end_turn()
@@ -680,7 +681,7 @@ def play_turn(game: ".game.Game") -> ".game.Game":
 
 #our mulligan strategy
 def mulligan(hand, weights):
-	#weights = {'OG_113': -69.59999999999991, 'UNG_809': -41.999999999999915, 'CS2_065': 60.39999999999985, 'NEW1_025': -35.59999999999994, 'ICC_466': -25.99999999999997, 'EX1_310': 34.79999999999994, 'UNG_075': 38.39999999999993, 'ICC_075': -61.599999999999845, 'ICC_092': 10.400000000000004, 'ICC_851': -4.799999999999999, 'EX1_048': -14.000000000000005, 'ICC_831': -29.59999999999996, 'EX1_319': 112.80000000000052, 'CFM_637': -12.400000000000006, 'ICC_705': -61.19999999999985, 'GAME_005': -146.800000000001, 'EX1_308': -76.80000000000001, 'KAR_089': 29.999999999999957}
+	weights = {'OG_113': -69.59999999999991, 'UNG_809': -41.999999999999915, 'CS2_065': 60.39999999999985, 'NEW1_025': -35.59999999999994, 'ICC_466': -25.99999999999997, 'EX1_310': 34.79999999999994, 'UNG_075': 38.39999999999993, 'ICC_075': -61.599999999999845, 'ICC_092': 10.400000000000004, 'ICC_851': -4.799999999999999, 'EX1_048': -14.000000000000005, 'ICC_831': -29.59999999999996, 'EX1_319': 112.80000000000052, 'CFM_637': -12.400000000000006, 'ICC_705': -61.19999999999985, 'GAME_005': -146.800000000001, 'EX1_308': -76.80000000000001, 'KAR_089': 29.999999999999957}
 	toMulligan = []
 	for card in hand:
 		if weights[card.id] < 0:
