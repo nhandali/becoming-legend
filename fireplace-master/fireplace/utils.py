@@ -251,13 +251,13 @@ def featureExtractor3(player, game:".game.Game") -> ".game.Game":
 
 _weights = collections.defaultdict(float)
 def approximateV(player, game):
-	phi = featureExtractor3(player, game)
+	phi = featureExtractor2(player, game)
 	return sum(phi[x] * _weights[x] for x in phi)
 
 def incorporateFeedback(phi, vpi, vprimepi, reward):
 	for feature in phi:
 		#print("IncorporateFeedback:", "phi is", phi, "vpi is", vpi, "vprimepi is", vprimepi, "reward is", reward, "new weight is", _weights[feature] - 0.05 * (vpi - (reward + 0.9 * vprimepi)) * phi[feature])
-		_weights[feature] = _weights[feature] - 0.05 * (vpi - (reward + 0.9 * vprimepi)) * phi[feature]
+		_weights[feature] = _weights[feature] - 0.001 * (vpi - (reward + 0.9 * vprimepi)) * phi[feature]
 		# try doing this after every sequence of actions
 
 def TDLearningPlayer(player, game):
@@ -265,7 +265,7 @@ def TDLearningPlayer(player, game):
 	while True:
 		if game.ended:
 			break
-		phi = featureExtractor3(player, game)
+		phi = featureExtractor2(player, game)
 		vpi = approximateV(player, game)
 		print("TD learning estimate of V(s) is", vpi)
 		print(_weights)
@@ -322,9 +322,9 @@ def TDLearningPlayer(player, game):
 
 	if game.ended:
 		if player == game.loser:
-			incorporateFeedback(phi, vpi, 0, -100)
+			incorporateFeedback(phi, vpi, 0, -8)
 		else: # ASSUME TIES ARE IMPOSSIBLE FOR NOW
-			incorporateFeedback(phi, vpi, 0, 100)
+			incorporateFeedback(phi, vpi, 0, 10)
 
 	game.end_turn()
 	return game
@@ -433,7 +433,7 @@ def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 	return game
 
 
-# Seems like this is where players actually play some sort of strategy
+# Reflex agent to test against.
 def play_turn(game: ".game.Game") -> ".game.Game":
 	player = game.current_player
 	#if player == game.players[0]:
