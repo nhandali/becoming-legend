@@ -29,6 +29,7 @@ def test_full_game(numgames = 1):
 				total += 1
 			print("Winrate: ", count/float(total))
 			print("Card Weights", weights)
+			break
 			if abs(count/float(total) - winrate) < .001:
 				break
 			winrate = count/float(total)

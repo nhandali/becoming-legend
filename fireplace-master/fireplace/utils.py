@@ -322,9 +322,9 @@ def TDLearningPlayer(player, game):
 
 	if game.ended:
 		if player == game.loser:
-			incorporateFeedback(phi, vpi, 0, -8)
+			incorporateFeedback(phi, vpi, 0, -80)
 		else: # ASSUME TIES ARE IMPOSSIBLE FOR NOW
-			incorporateFeedback(phi, vpi, 0, 10)
+			incorporateFeedback(phi, vpi, 0, 100)
 
 	game.end_turn()
 	return game
@@ -372,8 +372,24 @@ def TDLearningPlayer(player, game):
 		# we have to estimate the reward somehow
 		# depth limited search
 		# evaluation function (how similar is this to value function?)
+def minimax(player, game: ".game.Game") -> ".game.Game":
 
-
+	def getMaxAction(player, game,depth):
+		if game.ended:
+			if game.players[0] == game.loser:
+				return -100,None
+			else return 100,None
+		elif depth == 0:
+			return approximateV(player, game),None
+		elif player == game.players[0]:
+			#call getMaxAction on all possible actions
+			return max(values)
+		else:
+			#call get Max Action on all possible
+			return min(values)
+	value, actions = getMaxAction(player, game, 2)
+	for action in actions:
+		do action
 """
 	This player tries to play cards before hero powering, it also plays
 	the first card that's playable, and keeps playing cards until it can't anymore.
