@@ -275,7 +275,86 @@ def get_all_available_actions(player):
 	for character in player.characters:
 		if character.can_attack():
 			available_actions.append(("ATTACK", character))
+	available_actions.append(("END_TURN", None)) # player can always end their turn
 	return available_actions
+
+# slightly more efficient!
+def get_action_by_index(game, actionIndex, playerIndex=0):
+	playable_cards = [card for card in game.players[playerIndex].hand if card.is_playable()]
+	#print("get_action_by_index: there are", len(playable_cards), "playable cards.")
+	if actionIndex < len(playable_cards):
+		return ("CARD", playable_cards[actionIndex])
+	actionIndex -= len(playable_cards)
+	#print("get_action_by_index: hero power usable:", game.players[playerIndex].hero.power.is_usable())
+	if game.players[playerIndex].hero.power.is_usable():
+		if actionIndex == 0:
+			return ("HEROPOWER", None)
+		actionIndex -= 1
+	ready_characters = [character for character in game.players[playerIndex].characters if character.can_attack()]
+	#print("get_action_by_index: there are", len(ready_characters), "ready characters.")
+	if actionIndex < len(ready_characters):
+		return ("ATTACK", ready_characters[actionIndex])
+	actionIndex -= len(ready_characters)
+	if actionIndex == 0:
+		return ("END_TURN", None)
+	else:
+		#print("get_action_by_index: ERROR! should end turn but could not, actionIndex was", actionIndex)
+		return None
+
+def get_num_targets(game, moveIndex, playerIndex=0):
+	action_type, action_entity = get_action_by_index(game, moveIndex, playerIndex)
+	if action_type == "CARD":
+		card = action_entity
+		if card.must_choose_one:
+			return len(card.choose_cards)
+		if card.requires_target():
+			return len(card.targets)
+		return -1
+	elif action_type == "HEROPOWER":
+		heropower = game.players[playerIndex].hero.power
+		if heropower.requires_target():
+			return len(heropower.targets)
+		return -1
+	elif action_type == "ATTACK":
+		return len(action_entity.targets)
+	else:
+		return -1
+
+def get_value_of_move(game, moveIndex, moveTarget=-1, playerIndex=0):
+	game_copy = copy.deepcopy(game)
+	action_type, action_entity = get_action_by_index(game_copy, moveIndex, playerIndex)
+	if action_type == "CARD":
+		target = None
+		card = action_entity
+		if card.must_choose_one:
+			card = card.choose_cards[moveTarget]
+		if card.requires_target():
+			target = card.targets[moveTarget]
+		card.play(target=target)
+	elif action_type == "HEROPOWER":
+		heropower = game_copy.players[playerIndex].hero.power
+		if heropower.requires_target():
+			heropower.use(target=heropower.targets[moveTarget])
+		else:
+			heropower.use()
+	elif action_type == "ATTACK":
+		action_entity.attack(action_entity.targets[moveTarget])
+	else:
+		pass
+	return approximateV(game_copy.players[playerIndex], game_copy)
+
+def stringify_target_info(player, action_type, action_entity, targetIndex):
+	if action_type == "CARD":
+		if action_entity.must_choose_one:
+			return str(action_entity.choose_cards[targetIndex])
+		if action_entity.requires_target():
+			return str(action_entity.targets[targetIndex])
+	if action_type == "HEROPOWER":
+		if player.hero.power.requires_target():
+			return str(player.hero.power.targets[targetIndex])
+	if action_type == "ATTACK":
+		return str(action_entity.targets[targetIndex])
+	return "(none)"
 
 epsilon = 0.05
 def TDLearningPlayer(player, game):
@@ -320,15 +399,37 @@ def TDLearningPlayer(player, game):
 						heropower.use(target=random.choice(heropower.targets))
 					else:
 						heropower.use()
-				else:
+				elif action_type == "ATTACK":
 					entity.attack(random.choice(entity.targets))
+				else: # end turn
+					break
 				actions_taken += 1
 			else:
 				# Go through every action and see which one is the best one
 				best_action_index = -1
+				best_action_target = -1
 				best_value = float("-inf")
 				for _ in range(1):
 					for i in range(len(available_actions)):
+						num_targets = get_num_targets(game, i)
+						if num_targets == -1:
+							vpi = get_value_of_move(game, i)
+							action_type, action_entity = get_action_by_index(game, i)
+							#print("Action", action_type, "with", action_entity, "has value", vpi)
+							if vpi > best_value:
+								best_value = vpi
+								best_action_index = i
+								best_action_target = -1
+						else:
+							for t in range(num_targets):
+								vpi = get_value_of_move(game, i, moveTarget=t)
+								action_type, action_entity = get_action_by_index(game, i)
+								#print("Action", action_type, "with", action_entity, "on target", stringify_target_info(player, action_type, action_entity, t), "has value", vpi)
+								if vpi > best_value:
+									best_value = vpi
+									best_action_index = i
+									best_action_target = t
+						"""
 						game_copy = copy.deepcopy(game)
 						current_action_type, current_entity = get_all_available_actions(game_copy.players[0])[i]
 						if current_action_type == "CARD":
@@ -349,36 +450,41 @@ def TDLearningPlayer(player, game):
 								heropower.use()
 							vpi = approximateV(game_copy.players[0], game_copy)
 							print("Hero power has value", vpi)
-						else:
-							# ATTACK
+						elif current_action_type == "ATTACK":
 							new_attacker = current_entity
 							new_attacker.attack(random.choice(new_attacker.targets))
 							vpi = approximateV(game_copy.players[0], game_copy)
 							print("Attacking with", new_attacker, "has value", vpi)
+						else:
+							# END TURN
+							vpi = approximateV(player, game)
+							print("Ending turn has value", vpi)
 
 						if vpi > best_value:
 							best_value = vpi
 							best_action_index = i
-
+						"""
 				# NOW perform the action
 				best_action_type, best_entity = available_actions[best_action_index]
-				print("============ BEST ACTION IS", best_action_type, "with", best_entity, "(value " + str(best_value) + " )")
+				print("============ BEST ACTION IS", best_action_type, "with", best_entity, "and target", stringify_target_info(player, best_action_type, best_entity, best_action_target), "(value " + str(best_value) + " )")
 				if best_action_type == "CARD":
 					target = None
 					card = best_entity
 					if card.must_choose_one:
-						card = random.choice(card.choose_cards)
+						card = card.choose_cards[best_action_target]
 					if card.requires_target():
-						target = random.choice(card.targets)
+						target = card.targets[best_action_target]
 					card.play(target=target)
 				elif best_action_type == "HEROPOWER":
 					heropower = player.hero.power
 					if heropower.requires_target():
-						heropower.use(target=random.choice(heropower.targets))
+						heropower.use(target=heropower.targets[best_action_target])
 					else:
 						heropower.use()
+				elif best_action_type == "ATTACK":
+					best_entity.attack(best_entity.targets[best_action_target])
 				else:
-					best_entity.attack(random.choice(best_entity.targets))
+					break # END TURN
 				actions_taken += 1
 
 		#if sum(_weights[feature] for feature in phi) > 0:
@@ -439,6 +545,7 @@ def TDLearningPlayer(player, game):
 			break
 	"""
 
+"""
 		# This is what the TA said:
 		# we have to estimate the reward somehow
 		# depth limited search
@@ -461,6 +568,7 @@ def TDLearningPlayer(player, game):
 # 	value, actions = getMaxAction(player, game, 2)
 # 	for action in actions:
 # 		do action
+"""
 """
 	This player tries to play cards before hero powering, it also plays
 	the first card that's playable, and keeps playing cards until it can't anymore.
