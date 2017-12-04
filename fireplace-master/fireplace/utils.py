@@ -6,7 +6,7 @@ from pkgutil import iter_modules
 from typing import List
 from xml.etree import ElementTree
 from hearthstone.enums import CardClass, CardType, Rarity
-import collections
+import collections, copy
 
 # Autogenerate the list of cardset modules
 _cards_module = os.path.join(os.path.dirname(__file__), "cards")
@@ -182,7 +182,7 @@ def setup_game() -> ".game.Game":
 
 #defines a feature extractor that generate a feature vector
 def featureExtractor(player, game:".game.Game") -> ".game.Game":
-	features = collections.defualtdict(int)
+	features = collections.defaultdict(int)
 	features['our_hp'] = player.hero.health + player.hero.armor
 	features['opponent_hp'] = player.opponent.hero.health + player.opponent.hero.armor
 	features['bias'] = 1
@@ -205,6 +205,8 @@ def featureExtractor(player, game:".game.Game") -> ".game.Game":
 	features["mana_left"] = player.mana
 	features["num_minions"] = len(player.field)
 	features["their_minions"] = len(player.opponent.field)
+	if player.hero.power.is_usable():
+		features["can use hero power"] = 1
 	return features
 
 #feature extraction v2
@@ -228,40 +230,149 @@ def featureExtractor2(player, game:".game.Game") -> ".game.Game":
 	features["our_minion"] = len(player.field)
 	features["their_minions"] = len(player.opponent.field)
 	return features
+
+def featureExtractor3(player, game:".game.Game") -> ".game.Game":
+	features = collections.defaultdict(int)
+	features["bias"] = 1
+	if len([card for card in player.field]) > len([card for card in player.opponent.field]):
+		features["board advantage"] = 1
+	else:
+		features["no board advantage"] = 1
+
+	if len(player.hand) > len(player.opponent.hand):
+		features["hand advantage"] = 1
+	else:
+		features["no hand advantage"] = 1
+	if sum(card.atk for card in player.field) > sum(card.atk for card in player.opponent.field):
+		features["power advantage"] = 1
+	else:
+		features["no power advantage"] = 1
+	return features
+
 _weights = collections.defaultdict(float)
 def approximateV(player, game):
-	phi = featureExtractor(player, game)
+	phi = featureExtractor3(player, game)
 	return sum(phi[x] * _weights[x] for x in phi)
 
+def incorporateFeedback(phi, vpi, vprimepi, reward):
+	for feature in phi:
+		#print("IncorporateFeedback:", "phi is", phi, "vpi is", vpi, "vprimepi is", vprimepi, "reward is", reward, "new weight is", _weights[feature] - 0.05 * (vpi - (reward + 0.9 * vprimepi)) * phi[feature])
+		_weights[feature] = _weights[feature] - 0.05 * (vpi - (reward + 0.9 * vprimepi)) * phi[feature]
+		# try doing this after every sequence of actions
+
 def TDLearningPlayer(player, game):
+	actions_taken = 0
 	while True:
 		if game.ended:
 			break
-		random_chance = random.random()
-		if random_chance < 0.33:
-			for card in player.hand:
-				if card.is_playable():
-					target = None
-					if card.must_choose_one:
-						card = random.choice(card.choose_cards)
-					if card.requires_target():
-						if player.opponent.hero in card.targets:
-							target = player.opponent.hero
-						else:
-							target = card.targets[0]
-					#print("Playing %r on %r" % (card, target))
-					card.play(target=target)
+		phi = featureExtractor3(player, game)
+		vpi = approximateV(player, game)
+		print("TD learning estimate of V(s) is", vpi)
+		print(_weights)
+		# make a simple list of all the available actions at a given point
+		available_actions = []
+		for card in player.hand:
+			if card.is_playable():
+				available_actions.append(("CARD", card))
+		if player.hero.power.is_usable():
+			available_actions.append(("HEROPOWER", None))
+		for character in player.characters:
+			if character.can_attack():
+				available_actions.append(("ATTACK", character))
 
+		if not available_actions:
+			break
+		else:
+			"""
+			if 3 * len(available_actions) < actions_taken:
+				for action_type, entity in available_actions:
+					if action_type != "CARD":
+						break
+				else:
+					# This happens if we've already taken a shit-tonne of actions
+					# and the only thing left to do is play all our cards
+					break
+			"""
+			action_type, entity = random.choice(available_actions)
+			if action_type == "CARD":
+				target = None
+				card = entity
+				if card.must_choose_one:
+					card = random.choice(card.choose_cards)
+				if card.requires_target():
+					target = random.choice(card.targets)
+				card.play(target=target)
+			elif action_type == "HEROPOWER":
+				heropower = player.hero.power
+				if heropower.requires_target():
+					heropower.use(target=random.choice(heropower.targets))
+				else:
+					heropower.use()
+			else:
+				entity.attack(random.choice(entity.targets))
+			actions_taken += 1
 
-		# Get the best action to perform this turn
-		heropower_estimated_value = float("-inf")
-		best_character_attack_estimated_value = float("-inf")
-		best_character = None
+			#if sum(phi[feature] for feature in phi) > 0:
+			#	input()
 
-		# depth limited search
-		# evaluation function (how similar is this to value function?)
+		# reward = 0, discount = 0.9
+		vprimepi = approximateV(player, game)
+		incorporateFeedback(phi, vpi, vprimepi, 0)
+		vpi = vprimepi
+
+	if game.ended:
+		if player == game.loser:
+			incorporateFeedback(phi, vpi, 0, -100)
+		else: # ASSUME TIES ARE IMPOSSIBLE FOR NOW
+			incorporateFeedback(phi, vpi, 0, 100)
+
 	game.end_turn()
 	return game
+	"""
+			# Play the biggest minion
+			available_cards = []
+			for card in player.hand:
+				if card.is_playable():
+					available_cards.append(card)
+			if available_cards:
+				target = None
+				if card.must_choose_one:
+					card = random.choice(card.choose_cards)
+				if card.requires_target():
+					if player.opponent.hero in card.targets:
+						target = player.opponent.hero
+					else:
+						target = card.targets[0]
+				#print("Playing %r on %r" % (card, target))
+				card.play(target=target)
+				# TOOK ACTION
+			# Use the hero power
+			heropower = player.hero.power
+			if heropower.is_usable():
+				if heropower.requires_target():
+					heropower.use(target=random.choice(heropower.targets))
+					# TOOK ACTION
+				else:
+					heropower.use()
+					# TOOK ACTION
+				continue
+			# Attack with a minion
+			for character in player.characters:
+				if character.can_attack():
+					if character.can_attack(target=player.opponent.hero):
+						character.attack(player.opponent.hero)
+					else:
+						character.attack(character.targets[0])
+					if game.ended:
+						break
+			break
+	"""
+
+		# This is what the TA said:
+		# we have to estimate the reward somehow
+		# depth limited search
+		# evaluation function (how similar is this to value function?)
+
 
 """
 	This player tries to play cards before hero powering, it also plays
@@ -326,7 +437,10 @@ def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 def play_turn(game: ".game.Game") -> ".game.Game":
 	player = game.current_player
 	#if player == game.players[0]:
-	return faceFirstLegalMovePlayer(player, game)
+	#return faceFirstLegalMovePlayer(player, game)
+
+	if player == game.players[0]:
+		return TDLearningPlayer(player, game)
 
 	while True:
 		if game.ended:
@@ -377,8 +491,8 @@ def mulligan(hand, weights):
 		if weights[card.id] < 0:
 			toMulligan.append(card)
 	return toMulligan
+
 def play_full_game(weights) -> ".game.Game":
-	import copy
 	game = setup_game()
 
 	for player in game.players:
@@ -399,4 +513,5 @@ def play_full_game(weights) -> ".game.Game":
 		if game.ended:
 			print("loser:" ,game.loser)
 			break
+	print("TD learning weights are now", _weights)
 	return game
