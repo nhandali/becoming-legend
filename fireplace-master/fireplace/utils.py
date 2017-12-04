@@ -65,7 +65,7 @@ def random_draft(card_class: CardClass, exclude=[]):
 	Return a deck of 30 random cards for the \a card_class
 	"""
 	from . import cards
-	from .deck import Deck 
+	from .deck import Deck
 
 	deck = []
 	collection = []
@@ -207,7 +207,40 @@ def featureExtractor(player, game:".game.Game") -> ".game.Game":
 	features["their_minions"] = len(player.opponent.field)
 	return features
 
+_weights = defaultdict(float)
+def approximateV(player, game):
+	phi = featureExtractor(player, game)
+	return sum(phi[x] * _weights[x] for x in phi)
 
+def TDLearningPlayer(player, game):
+	while True:
+		if game.ended:
+			break
+		random_chance = random.random()
+		if random_chance < 0.33:
+			for card in player.hand:
+				if card.is_playable():
+					target = None
+					if card.must_choose_one:
+						card = random.choice(card.choose_cards)
+					if card.requires_target():
+						if player.opponent.hero in card.targets:
+							target = player.opponent.hero
+						else:
+							target = card.targets[0]
+					#print("Playing %r on %r" % (card, target))
+					card.play(target=target)
+
+
+		# Get the best action to perform this turn
+		heropower_estimated_value = float("-inf")
+		best_character_attack_estimated_value = float("-inf")
+		best_character = None
+
+		# depth limited search
+		# evaluation function (how similar is this to value function?)
+	game.end_turn()
+	return game
 
 """
 	This player tries to play cards before hero powering, it also plays
@@ -232,7 +265,7 @@ def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 						target = card.targets[0]
 				#print("Playing %r on %r" % (card, target))
 				card.play(target=target)
-				
+
 				if game.ended:
 					game.end_turn()
 					return game
