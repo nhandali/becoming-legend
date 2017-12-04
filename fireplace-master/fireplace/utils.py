@@ -249,17 +249,35 @@ def featureExtractor3(player, game:".game.Game") -> ".game.Game":
 		features["no power advantage"] = 1
 	return features
 
+# initialise the weights to previously calculated optimal values
 _weights = collections.defaultdict(float)
+premade_weights = {'our_hp': 1.8673489184303163, 'opponent_hp': -3.037539913253422, 'bias': 10.412656424974298, 'our_hand': 2.153127765674754, 'their_hand': 0.9804111235739774, 'mana_left': -0.2590213226410433, 'our_power': 2.451094822043288, 'their_power': -1.3346142482372798, 'our_minion': -0.004790280977330176, 'their_minions': -2.4850411791904015}
+for w in premade_weights:
+	_weights[w] = premade_weights[w]
+
 def approximateV(player, game):
 	phi = featureExtractor2(player, game)
 	return sum(phi[x] * _weights[x] for x in phi)
 
 def incorporateFeedback(phi, vpi, vprimepi, reward):
-	for feature in phi:
+	for feature in set().union(_weights, phi):
 		#print("IncorporateFeedback:", "phi is", phi, "vpi is", vpi, "vprimepi is", vprimepi, "reward is", reward, "new weight is", _weights[feature] - 0.05 * (vpi - (reward + 0.9 * vprimepi)) * phi[feature])
 		_weights[feature] = _weights[feature] - 0.001 * (vpi - (reward + 0.9 * vprimepi)) * phi[feature]
 		# try doing this after every sequence of actions
 
+def get_all_available_actions(player):
+	available_actions = []
+	for card in player.hand:
+		if card.is_playable():
+			available_actions.append(("CARD", card))
+	if player.hero.power.is_usable():
+		available_actions.append(("HEROPOWER", None))
+	for character in player.characters:
+		if character.can_attack():
+			available_actions.append(("ATTACK", character))
+	return available_actions
+
+epsilon = 0.05
 def TDLearningPlayer(player, game):
 	actions_taken = 0
 	while True:
@@ -267,18 +285,11 @@ def TDLearningPlayer(player, game):
 			break
 		phi = featureExtractor2(player, game)
 		vpi = approximateV(player, game)
-		print("TD learning estimate of V(s) is", vpi)
-		print(_weights)
+		#print("TD learning estimate of V(s) is", vpi)
+		#print(_weights)
 		# make a simple list of all the available actions at a given point
-		available_actions = []
-		for card in player.hand:
-			if card.is_playable():
-				available_actions.append(("CARD", card))
-		if player.hero.power.is_usable():
-			available_actions.append(("HEROPOWER", None))
-		for character in player.characters:
-			if character.can_attack():
-				available_actions.append(("ATTACK", character))
+		available_actions = get_all_available_actions(player)
+		print("====== CURRENT PLAYER MANA:", player.mana)
 
 		if not available_actions:
 			break
@@ -293,39 +304,98 @@ def TDLearningPlayer(player, game):
 					# and the only thing left to do is play all our cards
 					break
 			"""
-			action_type, entity = random.choice(available_actions)
-			if action_type == "CARD":
-				target = None
-				card = entity
-				if card.must_choose_one:
-					card = random.choice(card.choose_cards)
-				if card.requires_target():
-					target = random.choice(card.targets)
-				card.play(target=target)
-			elif action_type == "HEROPOWER":
-				heropower = player.hero.power
-				if heropower.requires_target():
-					heropower.use(target=random.choice(heropower.targets))
+			if random.random() < epsilon:
+				action_type, entity = random.choice(available_actions)
+				if action_type == "CARD":
+					target = None
+					card = entity
+					if card.must_choose_one:
+						card = random.choice(card.choose_cards)
+					if card.requires_target():
+						target = random.choice(card.targets)
+					card.play(target=target)
+				elif action_type == "HEROPOWER":
+					heropower = player.hero.power
+					if heropower.requires_target():
+						heropower.use(target=random.choice(heropower.targets))
+					else:
+						heropower.use()
 				else:
-					heropower.use()
+					entity.attack(random.choice(entity.targets))
+				actions_taken += 1
 			else:
-				entity.attack(random.choice(entity.targets))
-			actions_taken += 1
+				# Go through every action and see which one is the best one
+				best_action_index = -1
+				best_value = float("-inf")
+				for _ in range(1):
+					for i in range(len(available_actions)):
+						game_copy = copy.deepcopy(game)
+						current_action_type, current_entity = get_all_available_actions(game_copy.players[0])[i]
+						if current_action_type == "CARD":
+							card = current_entity
+							target = None
+							if card.must_choose_one:
+								card = random.choice(card.choose_cards)
+							if card.requires_target():
+								target = random.choice(card.targets)
+							card.play(target=target)
+							vpi = approximateV(game_copy.players[0], game_copy)
+							print("Playing", card, "has value", vpi)
+						elif current_action_type == "HEROPOWER":
+							heropower = game_copy.players[0].hero.power
+							if heropower.requires_target():
+								heropower.use(target=random.choice(heropower.targets))
+							else:
+								heropower.use()
+							vpi = approximateV(game_copy.players[0], game_copy)
+							print("Hero power has value", vpi)
+						else:
+							# ATTACK
+							new_attacker = current_entity
+							new_attacker.attack(random.choice(new_attacker.targets))
+							vpi = approximateV(game_copy.players[0], game_copy)
+							print("Attacking with", new_attacker, "has value", vpi)
 
-			#if sum(phi[feature] for feature in phi) > 0:
-			#	input()
+						if vpi > best_value:
+							best_value = vpi
+							best_action_index = i
+
+				# NOW perform the action
+				best_action_type, best_entity = available_actions[best_action_index]
+				print("============ BEST ACTION IS", best_action_type, "with", best_entity, "(value " + str(best_value) + " )")
+				if best_action_type == "CARD":
+					target = None
+					card = best_entity
+					if card.must_choose_one:
+						card = random.choice(card.choose_cards)
+					if card.requires_target():
+						target = random.choice(card.targets)
+					card.play(target=target)
+				elif best_action_type == "HEROPOWER":
+					heropower = player.hero.power
+					if heropower.requires_target():
+						heropower.use(target=random.choice(heropower.targets))
+					else:
+						heropower.use()
+				else:
+					best_entity.attack(random.choice(best_entity.targets))
+				actions_taken += 1
+
+		#if sum(_weights[feature] for feature in phi) > 0:
+		#	input()
 
 		# reward = 0, discount = 0.9
 		vprimepi = approximateV(player, game)
+		#print("vpi is", vpi, " vprimepi is ", vprimepi)
 		incorporateFeedback(phi, vpi, vprimepi, 0)
 		vpi = vprimepi
 
 	if game.ended:
 		if player == game.loser:
-			incorporateFeedback(phi, vpi, 0, -8)
+			incorporateFeedback(phi, vpi, 0, -100)
 		else: # ASSUME TIES ARE IMPOSSIBLE FOR NOW
-			incorporateFeedback(phi, vpi, 0, 10)
-
+			incorporateFeedback(phi, vpi, 0, 100)
+	print("=========================== TURN OVER")
 	game.end_turn()
 	return game
 	"""
@@ -441,6 +511,8 @@ def play_turn(game: ".game.Game") -> ".game.Game":
 
 	if player == game.players[0]:
 		return TDLearningPlayer(player, game)
+	else:
+		return faceFirstLegalMovePlayer(player, game)
 
 	while True:
 		if game.ended:
