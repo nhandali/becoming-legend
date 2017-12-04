@@ -6,7 +6,7 @@ from pkgutil import iter_modules
 from typing import List
 from xml.etree import ElementTree
 from hearthstone.enums import CardClass, CardType, Rarity
-
+import collections
 
 # Autogenerate the list of cardset modules
 _cards_module = os.path.join(os.path.dirname(__file__), "cards")
@@ -207,7 +207,28 @@ def featureExtractor(player, game:".game.Game") -> ".game.Game":
 	features["their_minions"] = len(player.opponent.field)
 	return features
 
-_weights = defaultdict(float)
+#feature extraction v2
+def featureExtractor2(player, game:".game.Game") -> ".game.Game":
+	features = collections.defaultdict(int)
+	features['our_hp'] = player.hero.health + player.hero.armor
+	features['opponent_hp'] = player.opponent.hero.health + player.opponent.hero.armor
+	features['bias'] = 1
+	features["our_hand"] = len(player.hand)
+	features['their_hand'] = len(player.opponent.hand)
+	features['mana_left'] = player.mana
+
+	total_power = 0
+	for card in player.field:
+		total_power += card.atk
+	features["our_power"] = total_power
+	total_power = 0
+	for card in player.opponent.field:
+		total_power += card.atk
+	features["their_power"] = total_power
+	features["our_minion"] = len(player.field)
+	features["their_minions"] = len(player.opponent.field)
+	return features
+_weights = collections.defaultdict(float)
 def approximateV(player, game):
 	phi = featureExtractor(player, game)
 	return sum(phi[x] * _weights[x] for x in phi)
@@ -253,7 +274,6 @@ def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 			break
 		# iterate over our hand and play whatever is playable
 		for card in player.hand:
-
 			if card.is_playable():
 				target = None
 				if card.must_choose_one:
