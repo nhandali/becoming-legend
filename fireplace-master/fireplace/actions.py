@@ -901,6 +901,8 @@ class Give(TargetedAction):
 				continue
 			card.controller = target
 			card.zone = Zone.HAND
+			card.created = True
+			card.createdBy = str(source)
 			ret.append(card)
 		return ret
 

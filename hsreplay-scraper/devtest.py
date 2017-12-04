@@ -1,5 +1,11 @@
 import json
 from collections import defaultdict
+<<<<<<< HEAD
+=======
+import copy
+import random
+import cmd
+>>>>>>> f5b2a1e47dd894e9eeb4fdb6529f522250f9a51c
 
 """
 Note to self on how to get virtual environment started:
@@ -78,6 +84,14 @@ def get_card_info(card_id):
             _card_info_cache[card_id] = card
             return card
 
+<<<<<<< HEAD
+=======
+def get_card_name(card_id):
+    for card in card_data:
+        if card["id"] == card_id:
+            return card["name"]
+
+>>>>>>> f5b2a1e47dd894e9eeb4fdb6529f522250f9a51c
 """
 This method prints the card info for a single deck
 (useful to know how this works for later uses)
@@ -175,6 +189,7 @@ def kNearestDecks(observed_cards, opponent_class):
             return frequencyTable[card_name] / totalCards
     allDecks = []
     for deck in hsreplay_data["series"]["data"][opponent_class]:
+<<<<<<< HEAD
         distance = 0.
         for card in decode_deck_list(deck["deck_list"]):
             card_info = get_card_info(card[0])
@@ -189,22 +204,227 @@ if __name__ == "__main__":
     """
     This code computes a frequency table for how often pairs of cards are seen
     in decks for a specific class
+=======
+        # observed_cards_copy will eventually be modified so that
+        # we only have the cards that the opponent played that don't
+        # appear in this prospective deck at the end
+        observed_cards_copy = copy.deepcopy(observed_cards)
+        distance = 0.
+        for card in decode_deck_list(deck["deck_list"]):
+            card_info = get_card_info(card[0])
+            if card_info["name"] not in observed_cards_copy:
+                # This card hasn't been played - increases distance
+                distance += card[1] * 1./relativeFreq(card_info["name"])
+            else:
+                # This card has been played - decreases distance
+                observed_cards_copy.remove(card_info["name"])
+                # If there was only one instance of that card in the deck...
+                # and there are no more of that card, great!
+                # Otherwise, if there are two instances of that card in the deck
+                # and two instances in the observed cards, great!
+                if card[1] == 1:
+                    # only one copy of that card in the deck
+                    if card_info["name"] not in observed_cards_copy:
+                        # good, this matches!
+                        distance -= card[1] * 1./relativeFreq(card_info["name"])
+                    else:
+                        distance -= 1 * 1./relativeFreq(card_info["name"])
+                        # Doesn't match.
+                        # net result - remove distance since card matches,
+                        # then add distance since card doesn't match.
+                else:
+                    # two copies of that card in the deck
+                    if card_info["name"] not in observed_cards_copy:
+                        # only one copy of that card has been played
+                        # net result - zero
+                        # (see the code below for the negation to this distance removal)
+                        distance -= 1 * 1./relativeFreq(card_info["name"])
+                    else:
+                        # This is great! 2 copies in the deck AND
+                        # the opponent has played two copies!
+                        observed_cards_copy.remove(card_info["name"])
+                        distance -= card[1] * 1./relativeFreq(card_info["name"])
+        # now observed_cards_copy only has cards that didn't appear in this deck
+        for unseen_card in observed_cards_copy:
+            distance += 1 * 1./relativeFreq(unseen_card)
+
+        allDecks.append((distance, decode_deck_list(deck["deck_list"])))
+    return sorted(allDecks)
+
+def get_keleseth_deck():
+    our_deck = []
+    for deck in hsreplay_data["series"]["data"]["WARLOCK"]:
+        if deck["deck_id"] == "beV23vng1BqTLJdHa2ZuBb":
+            for card in decode_deck_list(deck["deck_list"]):
+                actual_info = get_card_info(card[0])
+                for i in range(card[1]):
+                    our_deck.append(actual_info["id"])
+    return our_deck
+
+class REPL(cmd.Cmd):
+    history = []
+
+    def helper_history(self, func, line):
+        pass
+
+    def do_EOF(self, line):
+        print("")
+        return True
+
+    def do_card(self, line):
+        """
+        Prints information about the given card.
+        Card can be supplied by ID or dbfId.
+        """
+
+        if line.isdigit():
+            result = get_card_info(int(line))["name"]
+        else:
+            result = get_card_name(line)
+
+        if result:
+            self.history.append(result)
+            print("(" + str(len(self.history)) + ")", result)
+        else:
+            print("Card not found.")
+
+    def do_array(self, line):
+        """
+        Packs the given history items into a list.
+        """
+        result = []
+        for item in line.split():
+            if item.isdigit() and int(item) <= len(self.history) and int(item) > 0:
+                result.append(self.history[int(item) - 1])
+            else:
+                print("Error:", item, "is not a valid history item")
+                return False
+        self.history.append(result)
+        print("(" + str(len(self.history)) + ")", result)
+
+    def do_eval(self, line):
+        """
+        Runs the python eval() command on the input.
+        You better know what you're doing!
+        """
+        eval(line)
+
+if __name__ == "__main__":
+    REPL().cmdloop()
+    sys.exit()
+
+    #print(get_card_info(42743)) # prints info for Despicable Dreadlord
+    """
+    frequencyTable, totalCards = computeCardFreqs("WARLOCK")
+    card_tuples = []
+    for card_name in frequencyTable:
+        card_tuples.append((frequencyTable[card_name], card_name))
+
+    for item in reversed(sorted(card_tuples)):
+        print(item[1], " has frequency ", item[0])
+    """
+
+    """
+    # This code computes a frequency table for how often pairs of cards are seen
+    # in decks for a specific class
+>>>>>>> f5b2a1e47dd894e9eeb4fdb6529f522250f9a51c
     matchings = buildCardMatchings("WARLOCK")
     for card in matchings["Flame Imp"]:
         print(card, " has relative frequency with Flame Imp of ", matchings["Flame Imp"][card])
     """
 
     """
+<<<<<<< HEAD
     This code computes a frequency table of all the cards that
     appear in decks containing EVERY card in the list that is
     passed in to this method
     matchings = getCardsThatAppearAlongside(["Flame Imp", "Despicable Dreadlord", "Patches the Pirate"])
+=======
+    # This code computes a frequency table of all the cards that
+    # appear in decks containing EVERY card in the list that is
+    # passed in to this method
+    matchings = getCardsThatAppearAlongside(["Flame Imp", "Prince Keleseth", "Doomguard"])
+>>>>>>> f5b2a1e47dd894e9eeb4fdb6529f522250f9a51c
     #del(matchings["Flame Imp"])
     for thing in matchings:
         print(thing + ",", matchings[thing])
     """
 
+<<<<<<< HEAD
     seenCards = ["Flame Imp", "Despicable Dreadlord", "Patches the Pirate", "Prince Keleseth", "Bloodreaver Gul'dan"]
+=======
+    print(get_card_name("KAR_089"))
+    eval("print(get_card_name('CS2_106'))")
+
+    # these signature IDs are from the archetype API available here:
+    # https://hsreplay.net/api/v1/archetypes/?format=api
+    zoolock_signature_ids = [631,1090,974,45340,39740,42790,42395,40465,38452,680]
+    print("Zoolock signature cards:")
+    for card_id in zoolock_signature_ids:
+        card_info = get_card_info(card_id)
+        print("-", card_info["name"])
+    print(".......................")
+
+    # We want to sort all the decks by frequency
+    deck_frequencies = []
+    total_freq = 0
+    for deck in hsreplay_data["series"]["data"]["WARLOCK"]:
+        total_freq += deck["total_games"]
+        deck_frequencies.append((deck["total_games"], decode_deck_list(deck["deck_list"])))
+    deck_frequencies = sorted(deck_frequencies)[:-36:-1]
+    tested_frequencies = 0
+    for f, _ in deck_frequencies:
+        tested_frequencies += f
+    print("Testing on the most frequent " + str((tested_frequencies * 100 / total_freq)) + "%" + " of decks")
+
+    def match_status(one_deck, another_deck):
+        match_num = 0.
+        for card in one_deck:
+            for another_card in another_deck:
+                if card[0] == another_card[0]:
+                    match_num += 1
+                    if card[1] == 2 and card[1] == another_card[1]:
+                        match_num += 1
+                    break
+        return match_num / 30
+
+    percentage = 0.
+    print("Testing the most frequent decks...")
+    for _ in range(100):
+        total_matches = 0
+        total_tested = 0
+
+        for frequency, deck in deck_frequencies:
+            # Now we have to test this frequency & deck
+            sample = random.sample(deck, 7)
+            seen_cards = []
+            for card in sample:
+                card_name = get_card_info(card[0])["name"]
+                for i in range(card[1]):
+                    seen_cards.append(card_name)
+            # Now we've built up seen cards, test it!
+            count = 0
+            similarity = 0.
+            for distance, potential_deck in kNearestDecks(seen_cards, "WARLOCK"):
+                count += 1
+                #if deck == potential_deck:
+                    #print("Match on deck", str(count) + "!")
+                similarity += match_status(deck, potential_deck)
+                    #break
+                if count == 1: # Change this if you want to test on more than just the nearest deck
+                    #print("No match in the top", count, "k nearest decks for deck with frequency", frequency)
+                    total_matches += similarity / 1
+                    break
+            total_tested += 1
+        print("Percentage correct answers:", (total_matches*100/total_tested))
+        percentage += (total_matches*100/total_tested)
+    print("-----------------------------------")
+    print("Average classification percentage: " + str((percentage / 100)) + "%")
+
+    """
+    #seenCards = ["Flame Imp", "Despicable Dreadlord", "Patches the Pirate", "Prince Keleseth", "Bloodreaver Gul'dan"]
+    seenCards = ["Stonehill Defender", "Stonehill Defender", "Bloodmage Thalnos", "Elise the Trailblazer", "Dirty Rat", "Dirty Rat", "Skulking Geist"]
+>>>>>>> f5b2a1e47dd894e9eeb4fdb6529f522250f9a51c
     print("Given the cards", seenCards)
     print("The opponent's most likely decks are:")
     print("")
@@ -217,3 +437,7 @@ if __name__ == "__main__":
         count += 1
         if count == 5:
             break
+<<<<<<< HEAD
+=======
+    """
+>>>>>>> f5b2a1e47dd894e9eeb4fdb6529f522250f9a51c
