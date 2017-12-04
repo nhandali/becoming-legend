@@ -34,3 +34,11 @@ class ICC_705:
 	"Bonemare"
 	play = Buff(Target, "ICC_705e")
 ICC_705e = buff(+4, +4, taunt=True)
+
+class ICC_831:
+	"Bloodreaver Gul'dan"
+	play = GainArmor(FRIENDLY_HERO, 5), Summon(CONTROLLER, "ICC_831p"), Summon(CONTROLLER, Copy(FRIENDLY + DEMON + KILLED))
+
+class ICC_831p:
+	"Siphon Life"
+	activate = Hit(TARGET, 3), Heal(FRIENDLY_HERO, 3)
