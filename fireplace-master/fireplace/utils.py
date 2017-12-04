@@ -356,7 +356,7 @@ def stringify_target_info(player, action_type, action_entity, targetIndex):
 		return str(action_entity.targets[targetIndex])
 	return "(none)"
 
-epsilon = 0.05
+epsilon = .05
 def TDLearningPlayer(player, game):
 	actions_taken = 0
 	while True:
@@ -706,6 +706,7 @@ def play_full_game(weights) -> ".game.Game":
 	while True:
 		play_turn(game)
 		if game.ended:
+			game.weights =_weights
 			print("loser:" ,game.loser)
 			break
 	#print("TD learning weights are now", _weights)
