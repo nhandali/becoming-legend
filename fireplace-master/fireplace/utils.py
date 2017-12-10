@@ -180,6 +180,9 @@ def setup_game() -> ".game.Game":
 
 	return game
 
+
+
+
 #defines a feature extractor that generate a feature vector
 def featureExtractor(player, game:".game.Game") -> ".game.Game":
 	features = collections.defaultdict(int)
@@ -209,6 +212,12 @@ def featureExtractor(player, game:".game.Game") -> ".game.Game":
 		features["can use hero power"] = 1
 	return features
 
+#used to set the features of the game.
+currFeatures = list()
+def setFeatures(featuresToUse):
+	global currFeatures
+	currFeatures= featuresToUse
+
 #feature extraction v2
 def featureExtractor2(player, game:".game.Game") -> ".game.Game":
 	features = collections.defaultdict(int)
@@ -229,6 +238,10 @@ def featureExtractor2(player, game:".game.Game") -> ".game.Game":
 	features["their_power"] = total_power
 	features["our_minion"] = len(player.field)
 	features["their_minions"] = len(player.opponent.field)
+
+	for feature in features:
+		if feature not in currFeatures:
+			features[feature] = 0
 	return features
 
 def featureExtractor3(player, game:".game.Game") -> ".game.Game":
@@ -261,8 +274,13 @@ premade_weights =  {'their_hand': 0.36995550582041914, 'our_hand': 0.96319246500
 #400 iterations {'their_hand': 0.41802993693023266, 'our_hand': 0.3124753209370982, 'our_power': 0.11116826859056192, 'bias': 10.138501188678141, 'their_power': 0.778331007381161, 'opponent_hp': -0.5338714610707936, 'our_hp': 0.3235654348530477, 'our_minion': 0.2096401091254182, 'mana_left': -0.41537467405371387, 'their_minions': -0.8217223885734551}
 #500:{'their_hand': 0.22458278816613944, 'our_hand': 0.45456663350945825, 'our_power': -0.5799190705958176, 'bias': 9.978792932842978, 'their_power': -0.4207673657087993, 'opponent_hp': -0.09869359518798886, 'our_hp': 0.1711667371866392, 'our_minion': 0.08902883753474322, 'mana_left': -0.5658920102805077, 'their_minions': -0.9276363211936061}
 
-for w in premade_weights:
-	_weights[w] = premade_weights[w]
+# for w in premade_weights:
+# 	_weights[w] = premade_weights[w]
+
+def setTDWeights(tdweights):
+	global _weights
+	for w in tdweights:
+		_weights[w] = tdweights[w]
 
 def approximateV(player, game):
 	phi = featureExtractor2(player, game)
@@ -366,6 +384,10 @@ def stringify_target_info(player, action_type, action_entity, targetIndex):
 	return "(none)"
 
 epsilon = 0.
+def setEpsilon(eVal):
+	global epsilon 
+	epsilon = eVal
+
 def TDLearningPlayer(player, game):
 	actions_taken = 0
 	while True:
@@ -502,14 +524,14 @@ def TDLearningPlayer(player, game):
 		# reward = 0, discount = 0.9
 		vprimepi = approximateV(player, game)
 		#print("vpi is", vpi, " vprimepi is ", vprimepi)
-		#incorporateFeedback(phi, vpi, vprimepi, 0)
+		incorporateFeedback(phi, vpi, vprimepi, 0)
 		vpi = vprimepi
 
-	# if game.ended:
-	# 	if player == game.loser:
-	# 		#incorporateFeedback(phi, vpi, 0, -100)
-	# 	else: # ASSUME TIES ARE IMPOSSIBLE FOR NOW
-	# 		#incorporateFeedback(phi, vpi, 0, 100)
+	if game.ended:
+		if player == game.loser:
+			incorporateFeedback(phi, vpi, 0, -100)
+		else: # ASSUME TIES ARE IMPOSSIBLE FOR NOW
+			incorporateFeedback(phi, vpi, 0, 100)
 	#print("=========================== TURN OVER")
 
 	game.end_turn()
@@ -715,8 +737,8 @@ def play_full_game(weights) -> ".game.Game":
 	while True:
 		play_turn(game)
 		if game.ended:
+			print("loser =", game.loser)
 			game.weights =_weights
-			print("loser:" ,game.loser)
 			break
 	#print("TD learning weights are now", _weights)
 	return game
