@@ -180,6 +180,9 @@ def setup_game() -> ".game.Game":
 
 	return game
 
+
+
+
 #defines a feature extractor that generate a feature vector
 def featureExtractor(player, game:".game.Game") -> ".game.Game":
 	features = collections.defaultdict(int)
@@ -209,6 +212,12 @@ def featureExtractor(player, game:".game.Game") -> ".game.Game":
 		features["can use hero power"] = 1
 	return features
 
+#used to set the features of the game.
+currFeatures = list()
+def setFeatures(featuresToUse):
+	global currFeatures
+	currFeatures= featuresToUse
+
 #feature extraction v2
 def featureExtractor2(player, game:".game.Game") -> ".game.Game":
 	features = collections.defaultdict(int)
@@ -229,6 +238,10 @@ def featureExtractor2(player, game:".game.Game") -> ".game.Game":
 	features["their_power"] = total_power
 	features["our_minion"] = len(player.field)
 	features["their_minions"] = len(player.opponent.field)
+
+	for feature in features:
+		if feature not in currFeatures:
+			features[feature] = 0
 	return features
 
 def featureExtractor3(player, game:".game.Game") -> ".game.Game":
@@ -273,8 +286,13 @@ _weights = collections.defaultdict(float)
 #80
 premade_weights = {'our_minion': -0.12185503856857878, 'their_hand': 0.05445471549172044, 'their_power': 0.016551441981040936, 'opponent_hp': -1.1414067047346732, 'mana_left': -0.03466587767254341, 'our_power': 1.3478995609309878, 'our_hp': 0.7655818635207267, 'their_minions': -1.5316447444870125, 'bias': 10.230574958070411, 'our_hand': 1.5232876754976714}
 
-for w in premade_weights:
-	_weights[w] = premade_weights[w]
+# for w in premade_weights:
+# 	_weights[w] = premade_weights[w]
+
+def setTDWeights(tdweights):
+	global _weights
+	for w in tdweights:
+		_weights[w] = tdweights[w]
 
 def approximateV(player, game):
 	phi = featureExtractor2(player, game)
@@ -378,6 +396,10 @@ def stringify_target_info(player, action_type, action_entity, targetIndex):
 	return "(none)"
 
 epsilon = 0.
+def setEpsilon(eVal):
+	global epsilon 
+	epsilon = eVal
+
 def TDLearningPlayer(player, game):
 	actions_taken = 0
 	while True:
@@ -514,14 +536,14 @@ def TDLearningPlayer(player, game):
 		# reward = 0, discount = 0.9
 		vprimepi = approximateV(player, game)
 		#print("vpi is", vpi, " vprimepi is ", vprimepi)
-		#incorporateFeedback(phi, vpi, vprimepi, 0)
+		incorporateFeedback(phi, vpi, vprimepi, 0)
 		vpi = vprimepi
 
-	# if game.ended:
-	# 	if player == game.loser:
-	# 		#incorporateFeedback(phi, vpi, 0, -100)
-	# 	else: # ASSUME TIES ARE IMPOSSIBLE FOR NOW
-	# 		#incorporateFeedback(phi, vpi, 0, 100)
+	if game.ended:
+		if player == game.loser:
+			incorporateFeedback(phi, vpi, 0, -100)
+		else: # ASSUME TIES ARE IMPOSSIBLE FOR NOW
+			incorporateFeedback(phi, vpi, 0, 100)
 	#print("=========================== TURN OVER")
 
 	game.end_turn()
@@ -727,8 +749,8 @@ def play_full_game(weights) -> ".game.Game":
 	while True:
 		play_turn(game)
 		if game.ended:
+			print("loser =", game.loser)
 			game.weights =_weights
-			print("loser:" ,game.loser)
 			break
 	#print("TD learning weights are now", _weights)
 	return game

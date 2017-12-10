@@ -2,8 +2,51 @@
 import sys; sys.path.append("..")
 from fireplace import cards
 from fireplace.exceptions import GameOver
-from fireplace.utils import play_full_game
-import collections
+from fireplace.utils import play_full_game, setEpsilon, setFeatures, setTDWeights
+import collections,copy
+
+'''
+Performs backward search. First it trains with epsilon-greedy algo, and uses those weights to then test with epsilon 0(deterministic policy)
+We then take the best subset of features each time and continue our search. At the end, we print out the best overall features
+'''
+def backwardSearch():
+	overallBestFeatures = list()
+	overallBestWinrate = 0.0
+	featureVec = ['our_hp', 'opponent_hp', 'bias', "our_hand", 'their_hand', 'mana_left', "our_power", "their_power", "our_minion", "their_minions"]
+	for i in range(1,10):
+		iterationBestWinrate = 0
+		iterationBestIndex = 0
+
+		for index in range(len(featureVec)):
+			currFeatures = copy.deepcopy(featureVec)
+			currFeatures.pop(index)
+			print("Training with curr features", currFeatures)
+			setEpsilon(.75)
+			setFeatures(currFeatures)
+			weights,winrate = test_full_game(10)
+
+			#now test
+			setEpsilon(0)
+			setTDWeights(weights)
+			print("Testing with curr features,", currFeatures)
+			print("current WEights are", weights)
+			weights, winrate = test_full_game(10)
+
+			if winrate > iterationBestWinrate:
+				iterationBestWinrate = winrate
+				iterationBestIndex = index
+
+		featureVec.pop(iterationBestIndex)
+		if iterationBestWinrate > overallBestWinrate:
+			overallBestWinrate = iterationBestWinrate
+			overallBestFeatures= featureVec
+		print("current features size", len(featureVec))
+		print('current best winrate is ', iterationBestWinrate)
+		print('current best features', featureVec)
+	print("Best winrate was ", overallBestWinrate)
+	print("Those features were", overallBestFeatures)
+
+
 
 def test_full_game(numgames = 1):
 	try:
@@ -35,7 +78,7 @@ def test_full_game(numgames = 1):
 					td_weights.append((i,game.weights))
 			print("Winrate: ", count/float(numgames))
 			#print("Card Weights", weights)
-			
+			return (game.weights,count/float(numgames) )
 			break
 			winrates.append((numIterations, count/float(numgames)))
 			if abs(count/float(numgames) - winrate) < .02:
@@ -50,6 +93,7 @@ def test_full_game(numgames = 1):
 
 def main():
 	cards.db.initialize()
+	backwardSearch()
 	if len(sys.argv) > 1:
 		numgames = sys.argv[1]
 		if not numgames.isdigit():
