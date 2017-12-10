@@ -251,15 +251,27 @@ def featureExtractor3(player, game:".game.Game") -> ".game.Game":
 
 # initialise the weights to previously calculated optimal values
 _weights = collections.defaultdict(float)
+#baseline, weights all 0
+# premade_weights = {'their_hand': 0, 'our_hand': 0, 'our_power': 0, 'bias': 0, 'their_power': 0, 'opponent_hp': 0, 'our_hp': 0, 'our_minion': 0, 'mana_left': 0, 'their_minions': 0}
 #premade_weights = {'our_hp': 1.8673489184303163, 'opponent_hp': -3.037539913253422, 'bias': 10.412656424974298, 'our_hand': 2.153127765674754, 'their_hand': 0.9804111235739774, 'mana_left': -0.2590213226410433, 'our_power': 2.451094822043288, 'their_power': -1.3346142482372798, 'our_minion': -0.004790280977330176, 'their_minions': -2.4850411791904015}
 #100 iterations
-#{'their_hand': 1.0646307772800043, 'our_hand': 1.4327237475494323, 'our_power': 1.0369101111840149, 'bias': 10.341823820463755, 'their_power': -0.6086494868042713, 'opponent_hp': -1.5532639423923134, 'our_hp': 1.4071730601372168, 'our_minion': -0.04624718876929695, 'mana_left': 0.6679475550062922, 'their_minions': -1.9432952708163345}
+# premade_weights = {'their_hand': 1.0646307772800043, 'our_hand': 1.4327237475494323, 'our_power': 1.0369101111840149, 'bias': 10.341823820463755, 'their_power': -0.6086494868042713, 'opponent_hp': -1.5532639423923134, 'our_hp': 1.4071730601372168, 'our_minion': -0.04624718876929695, 'mana_left': 0.6679475550062922, 'their_minions': -1.9432952708163345}
 #these are weights after running td-learning with epsilon .75 and 200 iterations.
-premade_weights =  {'their_hand': 0.36995550582041914, 'our_hand': 0.9631924650032906, 'our_power': 2.5618985848510722, 'bias': 10.391136076838388, 'their_power': -0.6684936230427211, 'opponent_hp': -1.662752205387238, 'our_hp': 1.4978564673209003, 'our_minion': 0.5465476389621604, 'mana_left': 1.309791771696138, 'their_minions': -1.5804438382538541}
+# premade_weights =  {'their_hand': 0.36995550582041914, 'our_hand': 0.9631924650032906, 'our_power': 2.5618985848510722, 'bias': 10.391136076838388, 'their_power': -0.6684936230427211, 'opponent_hp': -1.662752205387238, 'our_hp': 1.4978564673209003, 'our_minion': 0.5465476389621604, 'mana_left': 1.309791771696138, 'their_minions': -1.5804438382538541}
 #300 iterations
-#{'their_hand': 0.212426211768464, 'our_hand': 0.302072884763938, 'our_power': 0.2911624605284303, 'bias': 10.209268300485258, 'their_power': -0.3721761071162327, 'opponent_hp': -1.3134321405409255, 'our_hp': 1.6175992273146158, 'our_minion': 0.08821251558653698, 'mana_left': -0.3499741916863078, 'their_minions': -1.1405777692166605}
-#400 iterations {'their_hand': 0.41802993693023266, 'our_hand': 0.3124753209370982, 'our_power': 0.11116826859056192, 'bias': 10.138501188678141, 'their_power': 0.778331007381161, 'opponent_hp': -0.5338714610707936, 'our_hp': 0.3235654348530477, 'our_minion': 0.2096401091254182, 'mana_left': -0.41537467405371387, 'their_minions': -0.8217223885734551}
-#500:{'their_hand': 0.22458278816613944, 'our_hand': 0.45456663350945825, 'our_power': -0.5799190705958176, 'bias': 9.978792932842978, 'their_power': -0.4207673657087993, 'opponent_hp': -0.09869359518798886, 'our_hp': 0.1711667371866392, 'our_minion': 0.08902883753474322, 'mana_left': -0.5658920102805077, 'their_minions': -0.9276363211936061}
+# premade_weights = {'their_hand': 0.212426211768464, 'our_hand': 0.302072884763938, 'our_power': 0.2911624605284303, 'bias': 10.209268300485258, 'their_power': -0.3721761071162327, 'opponent_hp': -1.3134321405409255, 'our_hp': 1.6175992273146158, 'our_minion': 0.08821251558653698, 'mana_left': -0.3499741916863078, 'their_minions': -1.1405777692166605}
+#400 iterations
+# premade_weights = {'their_hand': 0.41802993693023266, 'our_hand': 0.3124753209370982, 'our_power': 0.11116826859056192, 'bias': 10.138501188678141, 'their_power': 0.778331007381161, 'opponent_hp': -0.5338714610707936, 'our_hp': 0.3235654348530477, 'our_minion': 0.2096401091254182, 'mana_left': -0.41537467405371387, 'their_minions': -0.8217223885734551}
+#500:
+# premade_weights = {'their_hand': 0.22458278816613944, 'our_hand': 0.45456663350945825, 'our_power': -0.5799190705958176, 'bias': 9.978792932842978, 'their_power': -0.4207673657087993, 'opponent_hp': -0.09869359518798886, 'our_hp': 0.1711667371866392, 'our_minion': 0.08902883753474322, 'mana_left': -0.5658920102805077, 'their_minions': -0.9276363211936061}
+#20:
+# premade_weights = {'our_minion': -0.12185503856857878, 'their_hand': 0.05445471549172044, 'their_power': 0.016551441981040936, 'opponent_hp': -1.1414067047346732, 'mana_left': -0.03466587767254341, 'our_power': 1.3478995609309878, 'our_hp': 0.7655818635207267, 'their_minions': -1.5316447444870125, 'bias': 10.230574958070411, 'our_hand': 1.5232876754976714}
+#40
+# premade_weights = {'our_minion': -0.12185503856857878, 'their_hand': 0.05445471549172044, 'their_power': 0.016551441981040936, 'opponent_hp': -1.1414067047346732, 'mana_left': -0.03466587767254341, 'our_power': 1.3478995609309878, 'our_hp': 0.7655818635207267, 'their_minions': -1.5316447444870125, 'bias': 10.230574958070411, 'our_hand': 1.5232876754976714}
+#60
+# premade_weights = {'our_minion': -0.12185503856857878, 'their_hand': 0.05445471549172044, 'their_power': 0.016551441981040936, 'opponent_hp': -1.1414067047346732, 'mana_left': -0.03466587767254341, 'our_power': 1.3478995609309878, 'our_hp': 0.7655818635207267, 'their_minions': -1.5316447444870125, 'bias': 10.230574958070411, 'our_hand': 1.5232876754976714}
+#80
+premade_weights = {'our_minion': -0.12185503856857878, 'their_hand': 0.05445471549172044, 'their_power': 0.016551441981040936, 'opponent_hp': -1.1414067047346732, 'mana_left': -0.03466587767254341, 'our_power': 1.3478995609309878, 'our_hp': 0.7655818635207267, 'their_minions': -1.5316447444870125, 'bias': 10.230574958070411, 'our_hand': 1.5232876754976714}
 
 for w in premade_weights:
 	_weights[w] = premade_weights[w]
@@ -644,48 +656,48 @@ def play_turn(game: ".game.Game") -> ".game.Game":
 		#return faceFirstLegalMovePlayer(player, game)
 		return TDLearningPlayer(player, game)
 	else:
-		return faceFirstLegalMovePlayer(player, game)
+		# return faceFirstLegalMovePlayer(player, game)
 
-	while True:
-		if game.ended:
-			break
-		heropower = player.hero.power
-		if heropower.is_usable() and random.random() < 0.1:
-			if heropower.requires_target():
-				heropower.use(target=random.choice(heropower.targets))
-			else:
-				heropower.use()
-			continue
-
-		# iterate over our hand and play whatever is playable
-		for card in player.hand:
-			if card.is_playable() and random.random() < 0.5:
-				target = None
-				if card.must_choose_one:
-					card = random.choice(card.choose_cards)
-				if card.requires_target():
-					target = random.choice(card.targets)
-				#print("Playing %r on %r" % (card, target))
-				card.play(target=target)
-
-				if player.choice:
-					choice = random.choice(player.choice.cards)
-					#print("Choosing card %r" % (choice))
-					player.choice.choose(choice)
-
+		while True:
+			if game.ended:
+				break
+			heropower = player.hero.power
+			if heropower.is_usable() and random.random() < 0.1:
+				if heropower.requires_target():
+					heropower.use(target=random.choice(heropower.targets))
+				else:
+					heropower.use()
 				continue
 
-		# Randomly attack with whatever can attack
-		for character in player.characters:
-			if character.can_attack():
-				character.attack(random.choice(character.targets))
-				if game.ended:
-					break
+			# iterate over our hand and play whatever is playable
+			for card in player.hand:
+				if card.is_playable() and random.random() < 0.5:
+					target = None
+					if card.must_choose_one:
+						card = random.choice(card.choose_cards)
+					if card.requires_target():
+						target = random.choice(card.targets)
+					#print("Playing %r on %r" % (card, target))
+					card.play(target=target)
 
-		break
+					if player.choice:
+						choice = random.choice(player.choice.cards)
+						#print("Choosing card %r" % (choice))
+						player.choice.choose(choice)
 
-	game.end_turn()
-	return game
+					continue
+
+			# Randomly attack with whatever can attack
+			for character in player.characters:
+				if character.can_attack():
+					character.attack(random.choice(character.targets))
+					if game.ended:
+						break
+
+			break
+
+		game.end_turn()
+		return game
 
 #our mulligan strategy
 def mulligan(hand, weights):
