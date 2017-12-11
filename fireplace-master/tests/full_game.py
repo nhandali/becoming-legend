@@ -23,14 +23,14 @@ def backwardSearch():
 			print("Training with curr features", currFeatures)
 			setEpsilon(.75)
 			setFeatures(currFeatures)
-			weights,winrate = test_full_game(200)
+			weights,winrate = test_full_game(5)
 
 			#now test
 			setEpsilon(0)
 			setTDWeights(weights)
 			print("Testing with curr features,", currFeatures)
 			print("current WEights are", weights)
-			weights, winrate = test_full_game(200)
+			weights, winrate = test_full_game(5)
 
 			if winrate > iterationBestWinrate:
 				iterationBestWinrate = winrate
@@ -72,7 +72,7 @@ def test_full_game(numgames = 1):
 						weights[card.id] -= alpha
 					# for card in game.oppCards:
 					# 	weights[card.id] += alpha
-				if i % 50 == 0: 
+				if i % 25 == 0: 
 					print("iteration", i)
 					print("td-weights", game.weights)
 					td_weights.append((i,game.weights))

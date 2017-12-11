@@ -220,6 +220,7 @@ def setFeatures(featuresToUse):
 
 #feature extraction v2
 def featureExtractor2(player, game:".game.Game") -> ".game.Game":
+
 	features = collections.defaultdict(int)
 	features['our_hp'] = player.hero.health + player.hero.armor
 	features['opponent_hp'] = player.opponent.hero.health + player.opponent.hero.armor
@@ -280,7 +281,9 @@ premade_weights =  {'their_hand': 0.36995550582041914, 'our_hand': 0.96319246500
 def setTDWeights(tdweights):
 	global _weights
 	for w in tdweights:
-		_weights[w] = tdweights[w]
+		if w in currFeatures:
+			_weights[w] = tdweights[w]
+
 
 def approximateV(player, game):
 	phi = featureExtractor2(player, game)
@@ -738,6 +741,7 @@ def play_full_game(weights) -> ".game.Game":
 	while True:
 		play_turn(game)
 		if game.ended:
+			#print("1 iteration ended")
 			game.weights =_weights
 			break
 	#print("TD learning weights are now", _weights)
