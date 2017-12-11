@@ -786,11 +786,9 @@ def play_full_game(weights) -> ".game.Game":
 	while True:
 		play_turn(game)
 		if game.ended:
-<<<<<<< HEAD
+
 			#print("1 iteration ended")
-=======
 			print("Loser: ", game.loser)
->>>>>>> fd2716b5d9d1ab8dd385fd89a14033c3060a3141
 			game.weights =_weights
 			break
 	#print("TD learning weights are now", _weights)
