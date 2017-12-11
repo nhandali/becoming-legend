@@ -221,29 +221,37 @@ def setFeatures(featuresToUse):
 #feature extraction v2
 def featureExtractor2(player, game:".game.Game") -> ".game.Game":
 	features = collections.defaultdict(int)
-	features['our_hp'] = player.hero.health + player.hero.armor
-	features['opponent_hp'] = player.opponent.hero.health + player.opponent.hero.armor
+	our_hp = player.hero.health + player.hero.armor
+	opp_hp = player.opponent.hero.health + player.opponent.hero.armor
+	# features['our_hp'] = our_hp
+	# features['opponent_hp'] = opp_hp
 	features['bias'] = 1
-	features["our_hand"] = len(player.hand)
-	features['their_hand'] = len(player.opponent.hand)
-	features['mana_left'] = player.mana
+	# features["our_hand"] = len(player.hand)
+	# features['their_hand'] = len(player.opponent.hand)
+    #
+	# features['mana_left'] = player.mana
 
-	total_power = 0
+	our_total_power = 0
 	for card in player.field:
-		total_power += card.atk
-	features["our_power"] = total_power
-	total_power = 0
+		our_total_power += card.atk
+	# features["our_power"] = our_total_power
+	opp_total_power = 0
 	for card in player.opponent.field:
-		total_power += card.atk
-	features["their_power"] = total_power
-	features["our_minion"] = len(player.field)
-	features["their_minions"] = len(player.opponent.field)
+		opp_total_power += card.atk
+	# features["their_power"] = opp_total_power
+
+	# features["our_minion"] = len(player.field)
+	# features["their_minions"] = len(player.opponent.field)
 
 	board_mana = sum([minion.cost for minion in player.field])
 	opp_board_mana = sum([minion.cost for minion in player.opponent.field])
 	features["board_mana_advantage"] = board_mana - opp_board_mana
 
 	features["mana_efficiency"] = player.total_mana_spent - player.opponent.total_mana_spent
+	features["hand_advantage"] = len(player.hand) - len(player.opponent.hand)
+	features["minion_advantage"] = len(player.field) - len(player.opponent.field)
+	features["minion_power_advantage"] = our_total_power - opp_total_power
+	features["hp_advantage"] = our_hp - opp_hp
 	# print("mana_efficiency: ", features["mana_efficiency"])
 
 	# for feature in features:
@@ -291,10 +299,18 @@ _weights = collections.defaultdict(float)
 #60
 # premade_weights = {'our_minion': -0.12185503856857878, 'their_hand': 0.05445471549172044, 'their_power': 0.016551441981040936, 'opponent_hp': -1.1414067047346732, 'mana_left': -0.03466587767254341, 'our_power': 1.3478995609309878, 'our_hp': 0.7655818635207267, 'their_minions': -1.5316447444870125, 'bias': 10.230574958070411, 'our_hand': 1.5232876754976714}
 #80
-premade_weights = {'our_minion': -0.12185503856857878, 'their_hand': 0.05445471549172044, 'their_power': 0.016551441981040936, 'opponent_hp': -1.1414067047346732, 'mana_left': -0.03466587767254341, 'our_power': 1.3478995609309878, 'our_hp': 0.7655818635207267, 'their_minions': -1.5316447444870125, 'bias': 10.230574958070411, 'our_hand': 1.5232876754976714}
+# premade_weights = {'our_minion': -0.12185503856857878, 'their_hand': 0.05445471549172044, 'their_power': 0.016551441981040936, 'opponent_hp': -1.1414067047346732, 'mana_left': -0.03466587767254341, 'our_power': 1.3478995609309878, 'our_hp': 0.7655818635207267, 'their_minions': -1.5316447444870125, 'bias': 10.230574958070411, 'our_hand': 1.5232876754976714}
+#200 w/board-mana-advantage only
+# premade_weights = {'our_hp': 2.0258296975654964, 'opponent_hp': -0.786233614047869, 'bias': -0.027235727508457677, 'our_hand': -0.6132569197522117, 'their_hand': 0.10952017087858268, 'mana_left': -0.6176642541592727, 'our_power': 0.5624496532327938, 'their_power': 0.04829666299926383, 'our_minion': 0.7096041741106176, 'their_minions': -0.14681510537123388, 'board_mana_advantage': -0.5789632029105242}
+#200 w/ mana-efficiency only
+# premade_weights = {'our_hp': 1.9094939844911247, 'opponent_hp': -0.6084501223763931, 'bias': -0.065081860476852, 'our_hand': 0.8589199625133825, 'their_hand': -0.013114520886652326, 'mana_left': 2.2458353839090566, 'our_power': 1.1491238395431829, 'their_power': -0.056254806650156364, 'our_minion': 0.5613719009936117, 'their_minions': 0.6214773440275192, 'mana_efficiency': 0.06605307904672975}
+#200 w/ both
+# premade_weights = {'our_hp': 1.9151354328361043, 'opponent_hp': -1.6075679128499454, 'bias': -0.07802881939217356, 'our_hand': 0.9099921149042629, 'their_hand': -0.17375162139897005, 'mana_left': 1.15076070140721, 'our_power': 0.379311892296743, 'their_power': -0.7341619493430168, 'our_minion': 0.22292275114902624, 'their_minions': 0.20418176040099065, 'board_mana_advantage': 0.18522614599905135, 'mana_efficiency': 0.8654447096826992}
+#200 w/ truncated features
+premade_weights = {'bias': 1.4829512976964385, 'board_mana_advantage': 0.2987328257289936, 'mana_efficiency': 0.10609448036514402, 'hand_advantage': 1.3235807484387507, 'minion_advantage': 0.5496890531814512, 'minion_power_advantage': 2.450495646630526, 'hp_advantage': 0.2631808186797604}
 
-# for w in premade_weights:
-# 	_weights[w] = premade_weights[w]
+for w in premade_weights:
+	_weights[w] = premade_weights[w]
 
 def setTDWeights(tdweights):
 	global _weights
@@ -404,7 +420,7 @@ def stringify_target_info(player, action_type, action_entity, targetIndex):
 		return str(action_entity.targets[targetIndex])
 	return "(none)"
 
-epsilon = 0.75
+epsilon = 0
 def setEpsilon(eVal):
 	global epsilon
 	epsilon = eVal
@@ -767,6 +783,7 @@ def play_full_game(weights) -> ".game.Game":
 	while True:
 		play_turn(game)
 		if game.ended:
+			print("Loser: ", game.loser)
 			game.weights =_weights
 			break
 	#print("TD learning weights are now", _weights)

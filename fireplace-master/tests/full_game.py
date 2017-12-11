@@ -73,8 +73,7 @@ def test_full_game(numgames = 1):
 					# for card in game.oppCards:
 					# 	weights[card.id] += alpha
 				# if i % 100 == 0:
-				#if i == 199:
-				if i % 50 == 0: 
+				if i % 20 == 0 or i == 199:
 					print("iteration", i)
 					print("td-weights", game.weights)
 					td_weights.append((i,game.weights))

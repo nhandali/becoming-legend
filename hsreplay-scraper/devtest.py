@@ -288,8 +288,8 @@ class REPL(cmd.Cmd):
         eval(line)
 
 if __name__ == "__main__":
-    REPL().cmdloop()
-    sys.exit()
+    #REPL().cmdloop()
+    #sys.exit()
 
     #print(get_card_info(42743)) # prints info for Despicable Dreadlord
     """
