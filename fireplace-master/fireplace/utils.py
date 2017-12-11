@@ -239,9 +239,16 @@ def featureExtractor2(player, game:".game.Game") -> ".game.Game":
 	features["our_minion"] = len(player.field)
 	features["their_minions"] = len(player.opponent.field)
 
-	for feature in features:
-		if feature not in currFeatures:
-			features[feature] = 0
+	board_mana = sum([minion.cost for minion in player.field])
+	opp_board_mana = sum([minion.cost for minion in player.opponent.field])
+	features["board_mana_advantage"] = board_mana - opp_board_mana
+
+	features["mana_efficiency"] = player.total_mana_spent - player.opponent.total_mana_spent
+	# print("mana_efficiency: ", features["mana_efficiency"])
+
+	# for feature in features:
+	# 	if feature not in currFeatures:
+	# 		features[feature] = 0
 	return features
 
 def featureExtractor3(player, game:".game.Game") -> ".game.Game":
@@ -370,12 +377,14 @@ def get_value_of_move(game, moveIndex, moveTarget=-1, playerIndex=0):
 		if card.requires_target():
 			target = card.targets[moveTarget]
 		card.play(target=target)
+		game_copy.current_player.total_mana_spent += card.cost
 	elif action_type == "HEROPOWER":
 		heropower = game_copy.players[playerIndex].hero.power
 		if heropower.requires_target():
 			heropower.use(target=heropower.targets[moveTarget])
 		else:
 			heropower.use()
+		game_copy.current_player.total_mana_spent += 2
 	elif action_type == "ATTACK":
 		action_entity.attack(action_entity.targets[moveTarget])
 	else:
@@ -395,9 +404,9 @@ def stringify_target_info(player, action_type, action_entity, targetIndex):
 		return str(action_entity.targets[targetIndex])
 	return "(none)"
 
-epsilon = 0.
+epsilon = 0.75
 def setEpsilon(eVal):
-	global epsilon 
+	global epsilon
 	epsilon = eVal
 
 def TDLearningPlayer(player, game):
@@ -436,12 +445,15 @@ def TDLearningPlayer(player, game):
 					if card.requires_target():
 						target = random.choice(card.targets)
 					card.play(target=target)
+					player.total_mana_spent += card.cost
+
 				elif action_type == "HEROPOWER":
 					heropower = player.hero.power
 					if heropower.requires_target():
 						heropower.use(target=random.choice(heropower.targets))
 					else:
 						heropower.use()
+					player.total_mana_spent += 2
 				elif action_type == "ATTACK":
 					entity.attack(random.choice(entity.targets))
 				else: # end turn
@@ -518,12 +530,14 @@ def TDLearningPlayer(player, game):
 					if card.requires_target():
 						target = card.targets[best_action_target]
 					card.play(target=target)
+					player.total_mana_spent += card.cost
 				elif best_action_type == "HEROPOWER":
 					heropower = player.hero.power
 					if heropower.requires_target():
 						heropower.use(target=heropower.targets[best_action_target])
 					else:
 						heropower.use()
+					player.total_mana_spent += 2
 				elif best_action_type == "ATTACK":
 					best_entity.attack(best_entity.targets[best_action_target])
 				else:
@@ -634,6 +648,7 @@ def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 						target = card.targets[0]
 				#print("Playing %r on %r" % (card, target))
 				card.play(target=target)
+				player.total_mana_spent += card.cost
 
 				if game.ended:
 					game.end_turn()
@@ -654,6 +669,7 @@ def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 					heropower.use(target=heropower.targets[0])
 			else:
 				heropower.use()
+			player.total_mana_spent += 2
 			continue
 
 		# For all characters, try to attack hero if possible
@@ -678,7 +694,7 @@ def play_turn(game: ".game.Game") -> ".game.Game":
 		#return faceFirstLegalMovePlayer(player, game)
 		return TDLearningPlayer(player, game)
 	else:
-		# return faceFirstLegalMovePlayer(player, game)
+		return faceFirstLegalMovePlayer(player, game)
 
 		while True:
 			if game.ended:
@@ -735,6 +751,7 @@ def play_full_game(weights) -> ".game.Game":
 
 	for player in game.players:
 		#print("Can mulligan %r" % (player.choice.cards))
+		player.total_mana_spent = 0
 		if player == game.players[0]:
 			player.choice.choose(*mulligan(player.choice.cards, weights))
 		else:

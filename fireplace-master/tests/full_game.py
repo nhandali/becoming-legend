@@ -72,7 +72,8 @@ def test_full_game(numgames = 1):
 						weights[card.id] -= alpha
 					# for card in game.oppCards:
 					# 	weights[card.id] += alpha
-				if i % 100 == 0: 
+				# if i % 100 == 0:
+				if i == 199:
 					print("iteration", i)
 					print("td-weights", game.weights)
 					td_weights.append((i,game.weights))
@@ -93,7 +94,7 @@ def test_full_game(numgames = 1):
 
 def main():
 	cards.db.initialize()
-	backwardSearch()
+	# backwardSearch()
 	if len(sys.argv) > 1:
 		numgames = sys.argv[1]
 		if not numgames.isdigit():
