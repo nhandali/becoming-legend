@@ -550,10 +550,11 @@ def TDLearningPlayer(player, game):
 		# reward = 0, discount = 0.9
 		vprimepi = approximateV(player, game)
 		#print("vpi is", vpi, " vprimepi is ", vprimepi)
-		incorporateFeedback(phi, vpi, vprimepi, 0)
+		if epsilon != 0:
+			incorporateFeedback(phi, vpi, vprimepi, 0)
 		vpi = vprimepi
 
-	if game.ended:
+	if game.ended and epsilon != 0:
 		if player == game.loser:
 			incorporateFeedback(phi, vpi, 0, -100)
 		else: # ASSUME TIES ARE IMPOSSIBLE FOR NOW
@@ -766,7 +767,6 @@ def play_full_game(weights) -> ".game.Game":
 	while True:
 		play_turn(game)
 		if game.ended:
-			print("loser =", game.loser)
 			game.weights =_weights
 			break
 	#print("TD learning weights are now", _weights)
