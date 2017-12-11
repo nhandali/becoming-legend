@@ -12,7 +12,7 @@ We then take the best subset of features each time and continue our search. At t
 def backwardSearch():
 	overallBestFeatures = list()
 	overallBestWinrate = 0.0
-	featureVec = ['our_hp', 'opponent_hp', 'bias', "our_hand", 'their_hand', 'mana_left', "our_power", "their_power", "our_minion", "their_minions"]
+	featureVec = ['our_hp', 'opponent_hp', 'bias', "our_hand", 'their_hand', 'mana_left', "our_power", "their_power", "our_minion", "their_minions", "board_mana_advantage", "mana_efficiency", "hand_advantage", "minion_advantage", "minion_power_advantage", "hp_advantage"]
 	for i in range(1,10):
 		iterationBestWinrate = 0
 		iterationBestIndex = 0
@@ -72,12 +72,9 @@ def test_full_game(numgames = 1):
 						weights[card.id] -= alpha
 					# for card in game.oppCards:
 					# 	weights[card.id] += alpha
-<<<<<<< HEAD
-				if i % 25 == 0: 
-=======
+				# if i % 25 == 0: 
 				# if i % 100 == 0:
 				if i % 20 == 0 or i == 199:
->>>>>>> fd2716b5d9d1ab8dd385fd89a14033c3060a3141
 					print("iteration", i)
 					print("td-weights", game.weights)
 					td_weights.append((i,game.weights))
