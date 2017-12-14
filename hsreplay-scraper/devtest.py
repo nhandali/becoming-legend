@@ -5,10 +5,15 @@ import random
 import cmd
 
 """
+Note to self on how to get virtual environment started:
+With Terminal in the base directory, type
+"source hs/bin/activate"
+And to deactivate the virtual environment, just type "deactivate" anywhere.
+
 Link to page describing the deck we are using:
 https://hsreplay.net/decks/Ius8aeryh7bo0KDV00Koqe/
 
-Wanna use some data from HSReplay?
+Wanna use some data from HSReplay? Well have I got something for you!
 (All files are in JSON)
 
 List of all decks HSReplay tracks:
@@ -20,7 +25,7 @@ https://hsreplay.net/analytics/query/single_deck_mulligan_guide/?GameType=RANKED
 List of base winrate by opponent class for our deck:
 https://hsreplay.net/analytics/query/single_deck_base_winrate_by_opponent_class/?GameType=RANKED_STANDARD&RankRange=ALL&Region=ALL&deck_id=Ius8aeryh7bo0KDV00Koqe
 
-List of popularity (and win rate) of all the cards in the game (useful for evaluation functions):
+List of popularity (AND WIN RATE!!!) of all the cards in the game (useful for evaluation functions):
 https://hsreplay.net/analytics/query/card_played_popularity_report/?GameType=RANKED_STANDARD&RankRange=ALL&TimeRange=LAST_14_DAYS
 """
 
@@ -162,10 +167,13 @@ def getCardsThatAppearAlongside(card_names):
 
 def kNearestDecks(observed_cards, opponent_class):
     """
-    Runs a K nearest neighbours algorithm on the decks we have in the database
-    and computes a similarity score for each deck to the decks in the
-    observed_cards list. Returns that list back to the caller in sorter order
-    so that the first element is the most similar one.
+    To make this frequency thing even better, something I thought of:
+    If they have a card that's pretty rare in their deck but appears in other decks,
+    they should be prioritised somehow.
+    e.g. if a Golakka crawler appears, that's much more significant than if a Voidwalker appears!
+    How do we fix this?
+    Maybe we should have a similarity score based on the relative INfrequency of cards,
+    rather than the current distance based on the relative frequency of cards.
     """
     frequencyTable, totalCards = computeCardFreqs(opponent_class)
     def relativeFreq(card_name):
@@ -347,10 +355,7 @@ if __name__ == "__main__":
                     break
         return match_num / 30
 
-    """
-    This code tests the K-nearest decks algorithm on the most frequent
-    80% of all Warlock decks.
-    """
+
     print("Testing the most frequent decks...")
     for num_cards_to_sample in range(0, 11):
         percentage = 0.
