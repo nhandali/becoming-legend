@@ -13,7 +13,7 @@ def backwardSearch():
 	overallBestFeatures = list()
 	overallBestWinrate = 0.0
 	featureVec = ['our_hp', 'opponent_hp', 'bias', "our_hand", 'their_hand', 'mana_left', "our_power", "their_power", "our_minion", "their_minions", "board_mana_advantage", "mana_efficiency", "hand_advantage", "minion_advantage", "minion_power_advantage", "hp_advantage"]
-	for i in range(1,10):
+	for i in range(len(featureVec)):
 		iterationBestWinrate = 0
 		iterationBestIndex = 0
 
