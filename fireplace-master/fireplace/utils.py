@@ -429,17 +429,156 @@ def setEpsilon(eVal):
 	epsilon = eVal
 
 """
+Returns True if the action caused the game to end or the player's turn to finish.
+Returns False otherwise.
+"""
+def perform_action(game, player_index, action_index, target_index):
+	action_type, action_entity = get_action_by_index(game, action_index, player_index)
+	if action_type == "CARD":
+		target = None
+		card = action_entity
+		if card.must_choose_one:
+			card = card.choose_cards[target_index]
+		if card.requires_target():
+			target = card.targets[target_index]
+		card.play(target=target)
+	elif action_type == "HEROPOWER":
+		heropower = game.players[player_index].hero.power
+		if heropower.requires_target():
+			heropower.use(target=heropower.targets[target_index])
+		else:
+			heropower.use()
+	elif action_type == "ATTACK":
+		action_entity.attack(action_entity.targets[target_index])
+	else:
+		game.end_turn() # END TURN
+		return True
+
+	if game.ended:
+		return True
+	else:
+		return False
+
+"""
 minimax:
 - deep copy like crazy
 - for every agent:
 - generate sequences of actions that all end with the game ending or END_TURN
   - after every action, keep deep-copying the game state
-- keep the best 5 sequences and simulate for the next agent -> 3^4 = 81 simulated paths
+- keep the best 3 sequences and simulate for the next agent -> 3^4 = 81 simulated paths
 - depth 2
 
 """
-def minimaxGetBestAction(player, game):
-	pass
+def minimaxGetBestAction(player_index, game_orig, depth, indent):
+	print(indent + "Entering minimax for player_index " + str(player_index) + " and depth " + str(depth))
+	if game_orig.ended:
+		if game_orig.loser == game_orig.players[1]:
+			return (200., None)
+		else:
+			return (-200., None)
+	elif depth == 0:
+		return (approximateV(game_orig.players[player_index], game_orig), None)
+
+	game = copy.deepcopy(game_orig)
+	# If player == 1, replace their hand with our best guess
+	# TODO complete this
+
+	#value, action_index
+	completed_action_chains = []
+	partial_action_chains = [(approximateV(game.players[0], game), [], game)]
+
+	print(indent + "Exploring all action chains for player_index " + str(player_index) + " and depth " + str(depth))
+	while partial_action_chains:
+		# Need to do something if the game is over? That's after we pick an action.
+		current_value, prev_actions, chain_game = partial_action_chains.pop(0)
+		available_actions = get_all_available_actions(chain_game.players[player_index])
+		for i in range(len(available_actions)):
+			num_targets = get_num_targets(chain_game, i, player_index)
+			if num_targets == -1:
+				chain_game_copy = copy.deepcopy(chain_game)
+				game_or_turn_just_ended = perform_action(chain_game_copy, player_index, i, -1)
+				if game_or_turn_just_ended:
+					if chain_game_copy.ended and chain_game_copy.loser == chain_game_copy.players[1]:
+						predicted_value = 200.
+					elif chain_game_copy.ended and chain_game_copy.loser == chain_game_copy.players[0]:
+						predicted_value = -200.
+					else:
+						predicted_value = approximateV(chain_game_copy.players[0], chain_game_copy)
+					new_actions = copy.deepcopy(prev_actions)
+					new_actions.append((i, -1))
+					completed_action_chains.append((predicted_value, new_actions, chain_game_copy))
+				else:
+					predicted_value = approximateV(chain_game_copy.players[0], chain_game_copy)
+					new_actions = copy.deepcopy(prev_actions)
+					new_actions.append((i, -1))
+					partial_action_chains.append((predicted_value, new_actions, chain_game_copy))
+
+				# perform the action on copy and add a new entry
+			else:
+				for t in range(num_targets):
+					chain_game_copy = copy.deepcopy(chain_game)
+					game_or_turn_just_ended = perform_action(chain_game_copy, player_index, i, t)
+					# perform the action on copy and add a new entry
+					if game_or_turn_just_ended:
+						if chain_game_copy.ended and chain_game_copy.loser == chain_game_copy.players[1]:
+							predicted_value = 200.
+						elif chain_game_copy.ended and chain_game_copy.loser == chain_game_copy.players[0]:
+							predicted_value = -200.
+						else:
+							predicted_value = approximateV(chain_game_copy.players[0], chain_game_copy)
+						new_actions = copy.deepcopy(prev_actions)
+						new_actions.append((i, t))
+						completed_action_chains.append((predicted_value, new_actions, chain_game_copy))
+					else:
+						predicted_value = approximateV(chain_game_copy.players[0], chain_game_copy)
+						new_actions = copy.deepcopy(prev_actions)
+						new_actions.append((i, t))
+						partial_action_chains.append((predicted_value, new_actions, chain_game_copy))
+
+	print(indent + "completed_action_chains has length " + str(len(completed_action_chains)))
+
+	# Explore best 3 paths from completed_action_chains
+	if player_index == 0:
+		best_paths = sorted(completed_action_chains)[:3]
+		best_chain = None
+		max_value = float("-inf")
+		for chain in best_paths:
+			print(indent + "Player " + str(player_index) + " at depth " + str(depth) + " - current estimate " + str(chain[0]) + " (actions " + str(chain[1]) + ")")
+			est_value, _ = minimaxGetBestAction(1, chain[2], depth, indent + "  ")
+			if est_value > max_value:
+				max_value = est_value
+				best_chain = chain[1]
+		return (max_value, best_chain)
+	else:
+		worst_paths = sorted(completed_action_chains)[-1:-4:-1]
+		print(indent + "Minimising player worst action chains have predicted value:")
+		worst_chain = None
+		min_value = float("+inf")
+		for chain in worst_paths:
+			print(indent + "Player " + str(player_index) + " at depth " + str(depth) + " - current estimate " + str(chain[0]) + " (actions " + str(chain[1]) + ")")
+			est_value, _ = minimaxGetBestAction(0, chain[2], depth - 1, indent + "  ")
+			if est_value < min_value:
+				min_value = est_value
+				worst_chain = chain[1]
+		return (min_value, worst_chain)
+
+def minimaxPlayer(player, game):
+	if game.ended:
+		return game
+	available_actions = get_all_available_actions(player)
+	if not available_actions:
+		return game
+
+	stuff = minimaxGetBestAction(0, game, 2, "")
+	print("Minimax says our best actions to take right now have value " + str(stuff[0]))
+	print("The action sequence is " + str(stuff[1]))
+	print("Returned stuff is " + str(stuff))
+	print("============================================================================")
+
+	for action in stuff[1]:
+		perform_action(game, 0, action[0], action[1])
+	return game
+
 
 def TDLearningPlayer(player, game):
 	actions_taken = 0
@@ -467,6 +606,12 @@ def TDLearningPlayer(player, game):
 					# and the only thing left to do is play all our cards
 					break
 			"""
+			stuff = minimaxGetBestAction(0, game, 2, "")
+			print("Minimax says our best actions to take right now have value " + str(stuff[0]))
+			print("The action sequence is " + str(stuff[1]))
+			print("Returned stuff is " + str(stuff))
+			print("============================================================================")
+
 			if random.random() < epsilon:
 				action_type, entity = random.choice(available_actions)
 				if action_type == "CARD":
@@ -727,7 +872,8 @@ def play_turn(game: ".game.Game") -> ".game.Game":
 	player = game.current_player
 	if player == game.players[0]:
 		#return faceFirstLegalMovePlayer(player, game)
-		return TDLearningPlayer(player, game)
+		return minimaxPlayer(player, game)
+		#return TDLearningPlayer(player, game)
 	else:
 		return faceFirstLegalMovePlayer(player, game)
 
