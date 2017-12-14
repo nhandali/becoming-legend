@@ -872,8 +872,8 @@ def play_turn(game: ".game.Game") -> ".game.Game":
 	player = game.current_player
 	if player == game.players[0]:
 		#return faceFirstLegalMovePlayer(player, game)
-		return minimaxPlayer(player, game)
-		#return TDLearningPlayer(player, game)
+		#return minimaxPlayer(player, game)
+		return TDLearningPlayer(player, game)
 	else:
 		return faceFirstLegalMovePlayer(player, game)
 

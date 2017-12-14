@@ -2,7 +2,6 @@
 Our Hearthstone AI project for CS221 and CS 229
 By: Nolan Handali, Aleksander Dash, Franklin Jia
 
-
 Due to the large codebase, we will highlight where the most important sections are
 that contain the relevant code written by the members of this CS229 project team. All
 paths are relative to the current working directory, which should be /becoming-legend.
@@ -104,3 +103,4 @@ While this is a pretty exhaustive list of functions that we implemented, there
 are many changes that we made throughout the codebase that we failed to mention here, simply
 because they aren't directly relevant to CS229 but were absolutely necessary in order for any
 of this to be possible.
+
