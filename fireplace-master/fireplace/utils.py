@@ -428,6 +428,19 @@ def setEpsilon(eVal):
 	global epsilon
 	epsilon = eVal
 
+"""
+minimax:
+- deep copy like crazy
+- for every agent:
+- generate sequences of actions that all end with the game ending or END_TURN
+  - after every action, keep deep-copying the game state
+- keep the best 5 sequences and simulate for the next agent -> 3^4 = 81 simulated paths
+- depth 2
+
+"""
+def minimaxGetBestAction(player, game):
+	pass
+
 def TDLearningPlayer(player, game):
 	actions_taken = 0
 	while True:
