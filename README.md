@@ -3,10 +3,18 @@ Our Hearthstone AI project for CS221 and CS 229
 By: Nolan Handali, Aleksander Dash, Franklin Jia
 
 Due to the large codebase, we will highlight where the most important sections are
-that contain the relevant code written by the members of this CS229 project team. All
+that contain the relevant code written by the members of this CS229 and CS221 project team. All
 paths are relative to the current working directory, which should be /becoming-legend.
 We will indicate where and which file to look at. Then we will indicate the functions
 to pay attention to, and then we will describe why it's relevant. 
+
+Testing:
+To set up the environment, run pip3 install -r requirements.txt from /fireplace-master
+Then, to see some output, navigate to /fireplace-master/tests.
+Currently, the test we wrote is set up to do td-learning, but you can change that at line 874 in /fireplace-master/fireplace/utils.py
+by returning which player to return. Then, to see output, go to /fireplace-master/fireplace/logging.py and change debug level to DEBUG.
+Then, simply run python3 full_game.py [num_games] where the optional parameter is the number of games to run. At the end, the program
+will output the winrate over those number of games.
 
 Navigating the Framework:
 1. Look inside of /fireplace-master/tests/full_game.py. 
