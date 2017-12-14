@@ -6,7 +6,7 @@ from pkgutil import iter_modules
 from typing import List
 from xml.etree import ElementTree
 from hearthstone.enums import CardClass, CardType, Rarity
-
+import collections, copy
 
 # Autogenerate the list of cardset modules
 _cards_module = os.path.join(os.path.dirname(__file__), "cards")
@@ -65,7 +65,7 @@ def random_draft(card_class: CardClass, exclude=[]):
 	Return a deck of 30 random cards for the \a card_class
 	"""
 	from . import cards
-	from .deck import Deck 
+	from .deck import Deck
 
 	deck = []
 	collection = []
@@ -180,8 +180,12 @@ def setup_game() -> ".game.Game":
 
 	return game
 
+
+
+
+#defines a feature extractor that generate a feature vector
 def featureExtractor(player, game:".game.Game") -> ".game.Game":
-	features = collections.defualtdict(int)
+	features = collections.defaultdict(int)
 	features['our_hp'] = player.hero.health + player.hero.armor
 	features['opponent_hp'] = player.opponent.hero.health + player.opponent.hero.armor
 	features['bias'] = 1
@@ -204,24 +208,545 @@ def featureExtractor(player, game:".game.Game") -> ".game.Game":
 	features["mana_left"] = player.mana
 	features["num_minions"] = len(player.field)
 	features["their_minions"] = len(player.opponent.field)
+	if player.hero.power.is_usable():
+		features["can use hero power"] = 1
 	return features
 
+#used to set the features of the game.
+currFeatures = list()
+def setFeatures(featuresToUse):
+	global currFeatures
+	currFeatures= featuresToUse
 
-def minimaxPlayer(player, game: ".game.Game") -> ".game.Game":
-	pass
+#feature extraction v2
+def featureExtractor2(player, game:".game.Game") -> ".game.Game":
+
+	features = collections.defaultdict(int)
+	our_hp = player.hero.health + player.hero.armor
+	opp_hp = player.opponent.hero.health + player.opponent.hero.armor
+	# features['our_hp'] = our_hp
+	# features['opponent_hp'] = opp_hp
+	features['bias'] = 1
+	# features["our_hand"] = len(player.hand)
+	# features['their_hand'] = len(player.opponent.hand)
+    #
+	# features['mana_left'] = player.mana
+
+	our_total_power = 0
+	for card in player.field:
+		our_total_power += card.atk
+	# features["our_power"] = our_total_power
+	opp_total_power = 0
+	for card in player.opponent.field:
+		opp_total_power += card.atk
+	# features["their_power"] = opp_total_power
+
+	# features["our_minion"] = len(player.field)
+	# features["their_minions"] = len(player.opponent.field)
+
+	board_mana = sum([minion.cost for minion in player.field])
+	opp_board_mana = sum([minion.cost for minion in player.opponent.field])
+	features["board_mana_advantage"] = board_mana - opp_board_mana
+
+	features["mana_efficiency"] = player.total_mana_spent - player.opponent.total_mana_spent
+	features["hand_advantage"] = len(player.hand) - len(player.opponent.hand)
+	features["minion_advantage"] = len(player.field) - len(player.opponent.field)
+	features["minion_power_advantage"] = our_total_power - opp_total_power
+	features["hp_advantage"] = our_hp - opp_hp
+	# print("mana_efficiency: ", features["mana_efficiency"])
+
+	# for feature in features:
+	# 	if feature not in currFeatures:
+	# 		features[feature] = 0
+	return features
+
+def featureExtractor3(player, game:".game.Game") -> ".game.Game":
+	features = collections.defaultdict(int)
+	features["bias"] = 1
+	if len([card for card in player.field]) > len([card for card in player.opponent.field]):
+		features["board advantage"] = 1
+	else:
+		features["no board advantage"] = 1
+
+	if len(player.hand) > len(player.opponent.hand):
+		features["hand advantage"] = 1
+	else:
+		features["no hand advantage"] = 1
+	if sum(card.atk for card in player.field) > sum(card.atk for card in player.opponent.field):
+		features["power advantage"] = 1
+	else:
+		features["no power advantage"] = 1
+	return features
+
+# initialise the weights to previously calculated optimal values
+_weights = collections.defaultdict(float)
+#baseline, weights all 0
+# premade_weights = {'their_hand': 0, 'our_hand': 0, 'our_power': 0, 'bias': 0, 'their_power': 0, 'opponent_hp': 0, 'our_hp': 0, 'our_minion': 0, 'mana_left': 0, 'their_minions': 0}
+#premade_weights = {'our_hp': 1.8673489184303163, 'opponent_hp': -3.037539913253422, 'bias': 10.412656424974298, 'our_hand': 2.153127765674754, 'their_hand': 0.9804111235739774, 'mana_left': -0.2590213226410433, 'our_power': 2.451094822043288, 'their_power': -1.3346142482372798, 'our_minion': -0.004790280977330176, 'their_minions': -2.4850411791904015}
+#100 iterations
+# premade_weights = {'their_hand': 1.0646307772800043, 'our_hand': 1.4327237475494323, 'our_power': 1.0369101111840149, 'bias': 10.341823820463755, 'their_power': -0.6086494868042713, 'opponent_hp': -1.5532639423923134, 'our_hp': 1.4071730601372168, 'our_minion': -0.04624718876929695, 'mana_left': 0.6679475550062922, 'their_minions': -1.9432952708163345}
+#these are weights after running td-learning with epsilon .75 and 200 iterations.
+# premade_weights =  {'their_hand': 0.36995550582041914, 'our_hand': 0.9631924650032906, 'our_power': 2.5618985848510722, 'bias': 10.391136076838388, 'their_power': -0.6684936230427211, 'opponent_hp': -1.662752205387238, 'our_hp': 1.4978564673209003, 'our_minion': 0.5465476389621604, 'mana_left': 1.309791771696138, 'their_minions': -1.5804438382538541}
+#300 iterations
+# premade_weights = {'their_hand': 0.212426211768464, 'our_hand': 0.302072884763938, 'our_power': 0.2911624605284303, 'bias': 10.209268300485258, 'their_power': -0.3721761071162327, 'opponent_hp': -1.3134321405409255, 'our_hp': 1.6175992273146158, 'our_minion': 0.08821251558653698, 'mana_left': -0.3499741916863078, 'their_minions': -1.1405777692166605}
+#400 iterations
+# premade_weights = {'their_hand': 0.41802993693023266, 'our_hand': 0.3124753209370982, 'our_power': 0.11116826859056192, 'bias': 10.138501188678141, 'their_power': 0.778331007381161, 'opponent_hp': -0.5338714610707936, 'our_hp': 0.3235654348530477, 'our_minion': 0.2096401091254182, 'mana_left': -0.41537467405371387, 'their_minions': -0.8217223885734551}
+#500:
+# premade_weights = {'their_hand': 0.22458278816613944, 'our_hand': 0.45456663350945825, 'our_power': -0.5799190705958176, 'bias': 9.978792932842978, 'their_power': -0.4207673657087993, 'opponent_hp': -0.09869359518798886, 'our_hp': 0.1711667371866392, 'our_minion': 0.08902883753474322, 'mana_left': -0.5658920102805077, 'their_minions': -0.9276363211936061}
+#20:
+# premade_weights = {'our_minion': -0.12185503856857878, 'their_hand': 0.05445471549172044, 'their_power': 0.016551441981040936, 'opponent_hp': -1.1414067047346732, 'mana_left': -0.03466587767254341, 'our_power': 1.3478995609309878, 'our_hp': 0.7655818635207267, 'their_minions': -1.5316447444870125, 'bias': 10.230574958070411, 'our_hand': 1.5232876754976714}
+#40
+# premade_weights = {'our_minion': -0.12185503856857878, 'their_hand': 0.05445471549172044, 'their_power': 0.016551441981040936, 'opponent_hp': -1.1414067047346732, 'mana_left': -0.03466587767254341, 'our_power': 1.3478995609309878, 'our_hp': 0.7655818635207267, 'their_minions': -1.5316447444870125, 'bias': 10.230574958070411, 'our_hand': 1.5232876754976714}
+#60
+# premade_weights = {'our_minion': -0.12185503856857878, 'their_hand': 0.05445471549172044, 'their_power': 0.016551441981040936, 'opponent_hp': -1.1414067047346732, 'mana_left': -0.03466587767254341, 'our_power': 1.3478995609309878, 'our_hp': 0.7655818635207267, 'their_minions': -1.5316447444870125, 'bias': 10.230574958070411, 'our_hand': 1.5232876754976714}
+#80
+# premade_weights = {'our_minion': -0.12185503856857878, 'their_hand': 0.05445471549172044, 'their_power': 0.016551441981040936, 'opponent_hp': -1.1414067047346732, 'mana_left': -0.03466587767254341, 'our_power': 1.3478995609309878, 'our_hp': 0.7655818635207267, 'their_minions': -1.5316447444870125, 'bias': 10.230574958070411, 'our_hand': 1.5232876754976714}
+#200 w/board-mana-advantage only
+# premade_weights = {'our_hp': 2.0258296975654964, 'opponent_hp': -0.786233614047869, 'bias': -0.027235727508457677, 'our_hand': -0.6132569197522117, 'their_hand': 0.10952017087858268, 'mana_left': -0.6176642541592727, 'our_power': 0.5624496532327938, 'their_power': 0.04829666299926383, 'our_minion': 0.7096041741106176, 'their_minions': -0.14681510537123388, 'board_mana_advantage': -0.5789632029105242}
+#200 w/ mana-efficiency only
+# premade_weights = {'our_hp': 1.9094939844911247, 'opponent_hp': -0.6084501223763931, 'bias': -0.065081860476852, 'our_hand': 0.8589199625133825, 'their_hand': -0.013114520886652326, 'mana_left': 2.2458353839090566, 'our_power': 1.1491238395431829, 'their_power': -0.056254806650156364, 'our_minion': 0.5613719009936117, 'their_minions': 0.6214773440275192, 'mana_efficiency': 0.06605307904672975}
+#200 w/ both
+# premade_weights = {'our_hp': 1.9151354328361043, 'opponent_hp': -1.6075679128499454, 'bias': -0.07802881939217356, 'our_hand': 0.9099921149042629, 'their_hand': -0.17375162139897005, 'mana_left': 1.15076070140721, 'our_power': 0.379311892296743, 'their_power': -0.7341619493430168, 'our_minion': 0.22292275114902624, 'their_minions': 0.20418176040099065, 'board_mana_advantage': 0.18522614599905135, 'mana_efficiency': 0.8654447096826992}
+#200 w/ truncated features
+premade_weights = {'bias': 1.4829512976964385, 'board_mana_advantage': 0.2987328257289936, 'mana_efficiency': 0.10609448036514402, 'hand_advantage': 1.3235807484387507, 'minion_advantage': 0.5496890531814512, 'minion_power_advantage': 2.450495646630526, 'hp_advantage': 0.2631808186797604}
+
+for w in premade_weights:
+	_weights[w] = premade_weights[w]
+
+def setTDWeights(tdweights):
+	global _weights
+	for w in tdweights:
+		if w in currFeatures:
+			_weights[w] = tdweights[w]
+
+
+def approximateV(player, game):
+	phi = featureExtractor2(player, game)
+	return sum(phi[x] * _weights[x] for x in phi)
+
+def incorporateFeedback(phi, vpi, vprimepi, reward):
+	for feature in set().union(_weights, phi):
+		#print("IncorporateFeedback:", "phi is", phi, "vpi is", vpi, "vprimepi is", vprimepi, "reward is", reward, "new weight is", _weights[feature] - 0.05 * (vpi - (reward + 0.9 * vprimepi)) * phi[feature])
+		_weights[feature] = _weights[feature] - 0.001 * (vpi - (reward + 0.9 * vprimepi)) * phi[feature]
+		# try doing this after every sequence of actions
+
+def get_all_available_actions(player):
+	available_actions = []
+	for card in player.hand:
+		if card.is_playable():
+			available_actions.append(("CARD", card))
+	if player.hero.power.is_usable():
+		available_actions.append(("HEROPOWER", None))
+	for character in player.characters:
+		if character.can_attack():
+			available_actions.append(("ATTACK", character))
+	available_actions.append(("END_TURN", None)) # player can always end their turn
+	return available_actions
+
+# slightly more efficient!
+def get_action_by_index(game, actionIndex, playerIndex=0):
+	playable_cards = [card for card in game.players[playerIndex].hand if card.is_playable()]
+	#print("get_action_by_index: there are", len(playable_cards), "playable cards.")
+	if actionIndex < len(playable_cards):
+		return ("CARD", playable_cards[actionIndex])
+	actionIndex -= len(playable_cards)
+	#print("get_action_by_index: hero power usable:", game.players[playerIndex].hero.power.is_usable())
+	if game.players[playerIndex].hero.power.is_usable():
+		if actionIndex == 0:
+			return ("HEROPOWER", None)
+		actionIndex -= 1
+	ready_characters = [character for character in game.players[playerIndex].characters if character.can_attack()]
+	#print("get_action_by_index: there are", len(ready_characters), "ready characters.")
+	if actionIndex < len(ready_characters):
+		return ("ATTACK", ready_characters[actionIndex])
+	actionIndex -= len(ready_characters)
+	if actionIndex == 0:
+		return ("END_TURN", None)
+	else:
+		#print("get_action_by_index: ERROR! should end turn but could not, actionIndex was", actionIndex)
+		return None
+
+def get_num_targets(game, moveIndex, playerIndex=0):
+	action_type, action_entity = get_action_by_index(game, moveIndex, playerIndex)
+	if action_type == "CARD":
+		card = action_entity
+		if card.must_choose_one:
+			return len(card.choose_cards)
+		if card.requires_target():
+			return len(card.targets)
+		return -1
+	elif action_type == "HEROPOWER":
+		heropower = game.players[playerIndex].hero.power
+		if heropower.requires_target():
+			return len(heropower.targets)
+		return -1
+	elif action_type == "ATTACK":
+		return len(action_entity.targets)
+	else:
+		return -1
+
+def get_value_of_move(game, moveIndex, moveTarget=-1, playerIndex=0):
+	game_copy = copy.deepcopy(game)
+	action_type, action_entity = get_action_by_index(game_copy, moveIndex, playerIndex)
+	if action_type == "CARD":
+		target = None
+		card = action_entity
+		if card.must_choose_one:
+			card = card.choose_cards[moveTarget]
+		if card.requires_target():
+			target = card.targets[moveTarget]
+		card.play(target=target)
+		game_copy.current_player.total_mana_spent += card.cost
+	elif action_type == "HEROPOWER":
+		heropower = game_copy.players[playerIndex].hero.power
+		if heropower.requires_target():
+			heropower.use(target=heropower.targets[moveTarget])
+		else:
+			heropower.use()
+		game_copy.current_player.total_mana_spent += 2
+	elif action_type == "ATTACK":
+		action_entity.attack(action_entity.targets[moveTarget])
+	else:
+		pass
+	return approximateV(game_copy.players[playerIndex], game_copy)
+
+def stringify_target_info(player, action_type, action_entity, targetIndex):
+	if action_type == "CARD":
+		if action_entity.must_choose_one:
+			return str(action_entity.choose_cards[targetIndex])
+		if action_entity.requires_target():
+			return str(action_entity.targets[targetIndex])
+	if action_type == "HEROPOWER":
+		if player.hero.power.requires_target():
+			return str(player.hero.power.targets[targetIndex])
+	if action_type == "ATTACK":
+		return str(action_entity.targets[targetIndex])
+	return "(none)"
+
+epsilon = 0
+def setEpsilon(eVal):
+	global epsilon
+	epsilon = eVal
+
 """
-	This player tries to play cards before hero powering, it also plays
-	the first card that's playable, and keeps playing cards until it can't anymore.
-	It also always goes face, unless there are taunts in the way.
+Returns True if the action caused the game to end or the player's turn to finish.
+Returns False otherwise.
 """
-def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
+def perform_action(game, player_index, action_index, target_index):
+	action_type, action_entity = get_action_by_index(game, action_index, player_index)
+	if action_type == "CARD":
+		target = None
+		card = action_entity
+		if card.must_choose_one:
+			card = card.choose_cards[target_index]
+		if card.requires_target():
+			target = card.targets[target_index]
+		card.play(target=target)
+	elif action_type == "HEROPOWER":
+		heropower = game.players[player_index].hero.power
+		if heropower.requires_target():
+			heropower.use(target=heropower.targets[target_index])
+		else:
+			heropower.use()
+	elif action_type == "ATTACK":
+		action_entity.attack(action_entity.targets[target_index])
+	else:
+		game.end_turn() # END TURN
+		return True
+
+	if game.ended:
+		return True
+	else:
+		return False
+
+"""
+minimax:
+- deep copy like crazy
+- for every agent:
+- generate sequences of actions that all end with the game ending or END_TURN
+  - after every action, keep deep-copying the game state
+- keep the best 3 sequences and simulate for the next agent -> 3^4 = 81 simulated paths
+- depth 2
+
+"""
+def minimaxGetBestAction(player_index, game_orig, depth, indent):
+	print(indent + "Entering minimax for player_index " + str(player_index) + " and depth " + str(depth))
+	if game_orig.ended:
+		if game_orig.loser == game_orig.players[1]:
+			return (200., None)
+		else:
+			return (-200., None)
+	elif depth == 0:
+		return (approximateV(game_orig.players[player_index], game_orig), None)
+
+	game = copy.deepcopy(game_orig)
+	# If player == 1, replace their hand with our best guess
+	# TODO complete this
+
+	#value, action_index
+	completed_action_chains = []
+	partial_action_chains = [(approximateV(game.players[0], game), [], game)]
+
+	print(indent + "Exploring all action chains for player_index " + str(player_index) + " and depth " + str(depth))
+	while partial_action_chains:
+		# Need to do something if the game is over? That's after we pick an action.
+		current_value, prev_actions, chain_game = partial_action_chains.pop(0)
+		available_actions = get_all_available_actions(chain_game.players[player_index])
+		for i in range(len(available_actions)):
+			num_targets = get_num_targets(chain_game, i, player_index)
+			if num_targets == -1:
+				chain_game_copy = copy.deepcopy(chain_game)
+				game_or_turn_just_ended = perform_action(chain_game_copy, player_index, i, -1)
+				if game_or_turn_just_ended:
+					if chain_game_copy.ended and chain_game_copy.loser == chain_game_copy.players[1]:
+						predicted_value = 200.
+					elif chain_game_copy.ended and chain_game_copy.loser == chain_game_copy.players[0]:
+						predicted_value = -200.
+					else:
+						predicted_value = approximateV(chain_game_copy.players[0], chain_game_copy)
+					new_actions = copy.deepcopy(prev_actions)
+					new_actions.append((i, -1))
+					completed_action_chains.append((predicted_value, new_actions, chain_game_copy))
+				else:
+					predicted_value = approximateV(chain_game_copy.players[0], chain_game_copy)
+					new_actions = copy.deepcopy(prev_actions)
+					new_actions.append((i, -1))
+					partial_action_chains.append((predicted_value, new_actions, chain_game_copy))
+
+				# perform the action on copy and add a new entry
+			else:
+				for t in range(num_targets):
+					chain_game_copy = copy.deepcopy(chain_game)
+					game_or_turn_just_ended = perform_action(chain_game_copy, player_index, i, t)
+					# perform the action on copy and add a new entry
+					if game_or_turn_just_ended:
+						if chain_game_copy.ended and chain_game_copy.loser == chain_game_copy.players[1]:
+							predicted_value = 200.
+						elif chain_game_copy.ended and chain_game_copy.loser == chain_game_copy.players[0]:
+							predicted_value = -200.
+						else:
+							predicted_value = approximateV(chain_game_copy.players[0], chain_game_copy)
+						new_actions = copy.deepcopy(prev_actions)
+						new_actions.append((i, t))
+						completed_action_chains.append((predicted_value, new_actions, chain_game_copy))
+					else:
+						predicted_value = approximateV(chain_game_copy.players[0], chain_game_copy)
+						new_actions = copy.deepcopy(prev_actions)
+						new_actions.append((i, t))
+						partial_action_chains.append((predicted_value, new_actions, chain_game_copy))
+
+	print(indent + "completed_action_chains has length " + str(len(completed_action_chains)))
+
+	# Explore best 3 paths from completed_action_chains
+	if player_index == 0:
+		best_paths = sorted(completed_action_chains)[:3]
+		best_chain = None
+		max_value = float("-inf")
+		for chain in best_paths:
+			print(indent + "Player " + str(player_index) + " at depth " + str(depth) + " - current estimate " + str(chain[0]) + " (actions " + str(chain[1]) + ")")
+			est_value, _ = minimaxGetBestAction(1, chain[2], depth, indent + "  ")
+			if est_value > max_value:
+				max_value = est_value
+				best_chain = chain[1]
+		return (max_value, best_chain)
+	else:
+		worst_paths = sorted(completed_action_chains)[-1:-4:-1]
+		print(indent + "Minimising player worst action chains have predicted value:")
+		worst_chain = None
+		min_value = float("+inf")
+		for chain in worst_paths:
+			print(indent + "Player " + str(player_index) + " at depth " + str(depth) + " - current estimate " + str(chain[0]) + " (actions " + str(chain[1]) + ")")
+			est_value, _ = minimaxGetBestAction(0, chain[2], depth - 1, indent + "  ")
+			if est_value < min_value:
+				min_value = est_value
+				worst_chain = chain[1]
+		return (min_value, worst_chain)
+
+def minimaxPlayer(player, game):
+	if game.ended:
+		return game
+	available_actions = get_all_available_actions(player)
+	if not available_actions:
+		return game
+
+	stuff = minimaxGetBestAction(0, game, 2, "")
+	print("Minimax says our best actions to take right now have value " + str(stuff[0]))
+	print("The action sequence is " + str(stuff[1]))
+	print("Returned stuff is " + str(stuff))
+	print("============================================================================")
+
+	for action in stuff[1]:
+		perform_action(game, 0, action[0], action[1])
+	return game
+
+
+def TDLearningPlayer(player, game):
+	actions_taken = 0
 	while True:
 		if game.ended:
 			break
-		# iterate over our hand and play whatever is playable
-		for card in player.hand:
+		phi = featureExtractor2(player, game)
+		vpi = approximateV(player, game)
+		#print("TD learning estimate of V(s) is", vpi)
+		#print(_weights)
+		# make a simple list of all the available actions at a given point
+		available_actions = get_all_available_actions(player)
+		#print("====== CURRENT PLAYER MANA:", player.mana)
 
-			if card.is_playable():
+		if not available_actions:
+			break
+		else:
+			"""
+			if 3 * len(available_actions) < actions_taken:
+				for action_type, entity in available_actions:
+					if action_type != "CARD":
+						break
+				else:
+					# This happens if we've already taken a shit-tonne of actions
+					# and the only thing left to do is play all our cards
+					break
+			"""
+			stuff = minimaxGetBestAction(0, game, 2, "")
+			print("Minimax says our best actions to take right now have value " + str(stuff[0]))
+			print("The action sequence is " + str(stuff[1]))
+			print("Returned stuff is " + str(stuff))
+			print("============================================================================")
+
+			if random.random() < epsilon:
+				action_type, entity = random.choice(available_actions)
+				if action_type == "CARD":
+					target = None
+					card = entity
+					if card.must_choose_one:
+						card = random.choice(card.choose_cards)
+					if card.requires_target():
+						target = random.choice(card.targets)
+					card.play(target=target)
+					player.total_mana_spent += card.cost
+
+				elif action_type == "HEROPOWER":
+					heropower = player.hero.power
+					if heropower.requires_target():
+						heropower.use(target=random.choice(heropower.targets))
+					else:
+						heropower.use()
+					player.total_mana_spent += 2
+				elif action_type == "ATTACK":
+					entity.attack(random.choice(entity.targets))
+				else: # end turn
+					break
+				actions_taken += 1
+			else:
+				# Go through every action and see which one is the best one
+				best_action_index = -1
+				best_action_target = -1
+				best_value = float("-inf")
+				for _ in range(1):
+					for i in range(len(available_actions)):
+						num_targets = get_num_targets(game, i)
+						if num_targets == -1:
+							vpi = get_value_of_move(game, i)
+							action_type, action_entity = get_action_by_index(game, i)
+							#print("Action", action_type, "with", action_entity, "has value", vpi)
+							if vpi > best_value:
+								best_value = vpi
+								best_action_index = i
+								best_action_target = -1
+						else:
+							for t in range(num_targets):
+								vpi = get_value_of_move(game, i, moveTarget=t)
+								action_type, action_entity = get_action_by_index(game, i)
+								#print("Action", action_type, "with", action_entity, "on target", stringify_target_info(player, action_type, action_entity, t), "has value", vpi)
+								if vpi > best_value:
+									best_value = vpi
+									best_action_index = i
+									best_action_target = t
+						"""
+						game_copy = copy.deepcopy(game)
+						current_action_type, current_entity = get_all_available_actions(game_copy.players[0])[i]
+						if current_action_type == "CARD":
+							card = current_entity
+							target = None
+							if card.must_choose_one:
+								card = random.choice(card.choose_cards)
+							if card.requires_target():
+								target = random.choice(card.targets)
+							card.play(target=target)
+							vpi = approximateV(game_copy.players[0], game_copy)
+							print("Playing", card, "has value", vpi)
+						elif current_action_type == "HEROPOWER":
+							heropower = game_copy.players[0].hero.power
+							if heropower.requires_target():
+								heropower.use(target=random.choice(heropower.targets))
+							else:
+								heropower.use()
+							vpi = approximateV(game_copy.players[0], game_copy)
+							print("Hero power has value", vpi)
+						elif current_action_type == "ATTACK":
+							new_attacker = current_entity
+							new_attacker.attack(random.choice(new_attacker.targets))
+							vpi = approximateV(game_copy.players[0], game_copy)
+							print("Attacking with", new_attacker, "has value", vpi)
+						else:
+							# END TURN
+							vpi = approximateV(player, game)
+							print("Ending turn has value", vpi)
+
+						if vpi > best_value:
+							best_value = vpi
+							best_action_index = i
+						"""
+				# NOW perform the action
+				best_action_type, best_entity = available_actions[best_action_index]
+				#print("============ BEST ACTION IS", best_action_type, "with", best_entity, "and target", stringify_target_info(player, best_action_type, best_entity, best_action_target), "(value " + str(best_value) + " )")
+				if best_action_type == "CARD":
+					target = None
+					card = best_entity
+					if card.must_choose_one:
+						card = card.choose_cards[best_action_target]
+					if card.requires_target():
+						target = card.targets[best_action_target]
+					card.play(target=target)
+					player.total_mana_spent += card.cost
+				elif best_action_type == "HEROPOWER":
+					heropower = player.hero.power
+					if heropower.requires_target():
+						heropower.use(target=heropower.targets[best_action_target])
+					else:
+						heropower.use()
+					player.total_mana_spent += 2
+				elif best_action_type == "ATTACK":
+					best_entity.attack(best_entity.targets[best_action_target])
+				else:
+					break # END TURN
+				actions_taken += 1
+
+		#if sum(_weights[feature] for feature in phi) > 0:
+		#	input()
+
+		# reward = 0, discount = 0.9
+		vprimepi = approximateV(player, game)
+		#print("vpi is", vpi, " vprimepi is ", vprimepi)
+		if epsilon != 0:
+			incorporateFeedback(phi, vpi, vprimepi, 0)
+		vpi = vprimepi
+
+	if game.ended and epsilon != 0:
+		if player == game.loser:
+			incorporateFeedback(phi, vpi, 0, -100)
+		else: # ASSUME TIES ARE IMPOSSIBLE FOR NOW
+			incorporateFeedback(phi, vpi, 0, 100)
+	#print("=========================== TURN OVER")
+
+	game.end_turn()
+	return game
+	"""
+			# Play the biggest minion
+			available_cards = []
+			for card in player.hand:
+				if card.is_playable():
+					available_cards.append(card)
+			if available_cards:
 				target = None
 				if card.must_choose_one:
 					card = random.choice(card.choose_cards)
@@ -232,7 +757,79 @@ def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 						target = card.targets[0]
 				#print("Playing %r on %r" % (card, target))
 				card.play(target=target)
-				
+				# TOOK ACTION
+			# Use the hero power
+			heropower = player.hero.power
+			if heropower.is_usable():
+				if heropower.requires_target():
+					heropower.use(target=random.choice(heropower.targets))
+					# TOOK ACTION
+				else:
+					heropower.use()
+					# TOOK ACTION
+				continue
+			# Attack with a minion
+			for character in player.characters:
+				if character.can_attack():
+					if character.can_attack(target=player.opponent.hero):
+						character.attack(player.opponent.hero)
+					else:
+						character.attack(character.targets[0])
+					if game.ended:
+						break
+			break
+	"""
+
+"""
+		# This is what the TA said:
+		# we have to estimate the reward somehow
+		# depth limited search
+		# evaluation function (how similar is this to value function?)
+# def minimax(player, game: ".game.Game") -> ".game.Game":
+
+# 	def getMaxAction(player, game,depth):
+# 		if game.ended:
+# 			if game.players[0] == game.loser:
+# 				return -100,None
+# 			else return 100,None
+# 		elif depth == 0:
+# 			return approximateV(player, game),None
+# 		elif player == game.players[0]:
+# 			#call getMaxAction on all possible actions
+# 			return max(values)
+# 		else:
+# 			#call get Max Action on all possible
+# 			return min(values)
+# 	value, actions = getMaxAction(player, game, 2)
+# 	for action in actions:
+# 		do action
+"""
+"""
+	This player tries to play cards before hero powering, it also plays
+	the first card that's playable, and keeps playing cards until it can't anymore.
+	It also always goes face, unless there are taunts in the way.
+"""
+cardsPlayed = list() 
+def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
+	while True:
+		if game.ended:
+			break
+		# iterate over our hand and play whatever is playable
+		for card in player.hand:
+			if card.is_playable():
+				target = None
+				if card.must_choose_one:
+					card = random.choice(card.choose_cards)
+				if card.requires_target():
+					if player.opponent.hero in card.targets:
+						target = player.opponent.hero
+					else:
+						target = card.targets[0]
+				print("Playing %r on %r" % (card, target))
+				card.play(target=target)
+				cardsPlayed.append(str(card))
+				player.total_mana_spent += card.cost
+
 				if game.ended:
 					game.end_turn()
 					return game
@@ -252,6 +849,7 @@ def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 					heropower.use(target=heropower.targets[0])
 			else:
 				heropower.use()
+			player.total_mana_spent += 2
 			continue
 
 		# For all characters, try to attack hero if possible
@@ -269,52 +867,56 @@ def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 	return game
 
 
-# Seems like this is where players actually play some sort of strategy
+# Reflex agent to test against.
 def play_turn(game: ".game.Game") -> ".game.Game":
 	player = game.current_player
-	#if player == game.players[0]:
-	return faceFirstLegalMovePlayer(player, game)
+	if player == game.players[0]:
+		#return faceFirstLegalMovePlayer(player, game)
+		return minimaxPlayer(player, game)
+		#return TDLearningPlayer(player, game)
+	else:
+		return faceFirstLegalMovePlayer(player, game)
 
-	while True:
-		if game.ended:
-			break
-		heropower = player.hero.power
-		if heropower.is_usable() and random.random() < 0.1:
-			if heropower.requires_target():
-				heropower.use(target=random.choice(heropower.targets))
-			else:
-				heropower.use()
-			continue
-
-		# iterate over our hand and play whatever is playable
-		for card in player.hand:
-			if card.is_playable() and random.random() < 0.5:
-				target = None
-				if card.must_choose_one:
-					card = random.choice(card.choose_cards)
-				if card.requires_target():
-					target = random.choice(card.targets)
-				#print("Playing %r on %r" % (card, target))
-				card.play(target=target)
-
-				if player.choice:
-					choice = random.choice(player.choice.cards)
-					#print("Choosing card %r" % (choice))
-					player.choice.choose(choice)
-
+		while True:
+			if game.ended:
+				break
+			heropower = player.hero.power
+			if heropower.is_usable() and random.random() < 0.1:
+				if heropower.requires_target():
+					heropower.use(target=random.choice(heropower.targets))
+				else:
+					heropower.use()
 				continue
 
-		# Randomly attack with whatever can attack
-		for character in player.characters:
-			if character.can_attack():
-				character.attack(random.choice(character.targets))
-				if game.ended:
-					break
+			# iterate over our hand and play whatever is playable
+			for card in player.hand:
+				if card.is_playable() and random.random() < 0.5:
+					target = None
+					if card.must_choose_one:
+						card = random.choice(card.choose_cards)
+					if card.requires_target():
+						target = random.choice(card.targets)
+					#print("Playing %r on %r" % (card, target))
+					card.play(target=target)
 
-		break
+					if player.choice:
+						choice = random.choice(player.choice.cards)
+						#print("Choosing card %r" % (choice))
+						player.choice.choose(choice)
 
-	game.end_turn()
-	return game
+					continue
+
+			# Randomly attack with whatever can attack
+			for character in player.characters:
+				if character.can_attack():
+					character.attack(random.choice(character.targets))
+					if game.ended:
+						break
+
+			break
+
+		game.end_turn()
+		return game
 
 #our mulligan strategy
 def mulligan(hand, weights):
@@ -324,12 +926,14 @@ def mulligan(hand, weights):
 		if weights[card.id] < 0:
 			toMulligan.append(card)
 	return toMulligan
-def play_full_game(weights) -> ".game.Game":
-	import copy
-	game = setup_game()
 
+def play_full_game(weights) -> ".game.Game":
+	game = setup_game()
+	global cardsPlayed
+	cardsPlayed = list()
 	for player in game.players:
 		#print("Can mulligan %r" % (player.choice.cards))
+		player.total_mana_spent = 0
 		if player == game.players[0]:
 			player.choice.choose(*mulligan(player.choice.cards, weights))
 		else:
@@ -344,6 +948,10 @@ def play_full_game(weights) -> ".game.Game":
 	while True:
 		play_turn(game)
 		if game.ended:
-			print("loser:" ,game.loser)
+			print(cardsPlayed)
+			#print("1 iteration ended")
+			print("Loser: ", game.loser)
+			game.weights =_weights
 			break
+	#print("TD learning weights are now", _weights)
 	return game

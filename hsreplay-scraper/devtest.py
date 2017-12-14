@@ -288,8 +288,8 @@ class REPL(cmd.Cmd):
         eval(line)
 
 if __name__ == "__main__":
-    REPL().cmdloop()
-    sys.exit()
+    #REPL().cmdloop()
+    #sys.exit()
 
     #print(get_card_info(42743)) # prints info for Despicable Dreadlord
     """
@@ -355,38 +355,40 @@ if __name__ == "__main__":
                     break
         return match_num / 30
 
-    percentage = 0.
-    print("Testing the most frequent decks...")
-    for _ in range(100):
-        total_matches = 0
-        total_tested = 0
 
-        for frequency, deck in deck_frequencies:
-            # Now we have to test this frequency & deck
-            sample = random.sample(deck, 7)
-            seen_cards = []
-            for card in sample:
-                card_name = get_card_info(card[0])["name"]
-                for i in range(card[1]):
-                    seen_cards.append(card_name)
-            # Now we've built up seen cards, test it!
-            count = 0
-            similarity = 0.
-            for distance, potential_deck in kNearestDecks(seen_cards, "WARLOCK"):
-                count += 1
-                #if deck == potential_deck:
-                    #print("Match on deck", str(count) + "!")
-                similarity += match_status(deck, potential_deck)
-                    #break
-                if count == 1: # Change this if you want to test on more than just the nearest deck
-                    #print("No match in the top", count, "k nearest decks for deck with frequency", frequency)
-                    total_matches += similarity / 1
-                    break
-            total_tested += 1
-        print("Percentage correct answers:", (total_matches*100/total_tested))
-        percentage += (total_matches*100/total_tested)
-    print("-----------------------------------")
-    print("Average classification percentage: " + str((percentage / 100)) + "%")
+    print("Testing the most frequent decks...")
+    for num_cards_to_sample in range(0, 11):
+        percentage = 0.
+        for _lol in range(100):
+            total_matches = 0
+            total_tested = 0
+
+            for frequency, deck in deck_frequencies:
+                # Now we have to test this frequency & deck
+                sample = random.sample(deck, num_cards_to_sample)
+                seen_cards = []
+                for card in sample:
+                    card_name = get_card_info(card[0])["name"]
+                    for i in range(card[1]):
+                        seen_cards.append(card_name)
+                # Now we've built up seen cards, test it!
+                count = 0
+                similarity = 0.
+                for distance, potential_deck in kNearestDecks(seen_cards, "WARLOCK"):
+                    count += 1
+                    #if deck == potential_deck:
+                        #print("Match on deck", str(count) + "!")
+                    similarity += match_status(deck, potential_deck)
+                        #break
+                    if count == 1: # Change this if you want to test on more than just the nearest deck
+                        #print("No match in the top", count, "k nearest decks for deck with frequency", frequency)
+                        total_matches += similarity / 1
+                        break
+                total_tested += 1
+            #print("Percentage correct answers:", (total_matches*100/total_tested))
+            percentage += (total_matches*100/total_tested)
+        print("----------------------------------- for", num_cards_to_sample, " cards")
+        print("Average classification percentage: " + str((percentage / 100)) + "%")
 
     """
     #seenCards = ["Flame Imp", "Despicable Dreadlord", "Patches the Pirate", "Prince Keleseth", "Bloodreaver Gul'dan"]
