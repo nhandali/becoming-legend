@@ -664,6 +664,7 @@ def TDLearningPlayer(player, game):
 	the first card that's playable, and keeps playing cards until it can't anymore.
 	It also always goes face, unless there are taunts in the way.
 """
+cardsPlayed = list() 
 def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 	while True:
 		if game.ended:
@@ -679,8 +680,9 @@ def faceFirstLegalMovePlayer(player, game: ".game.Game") -> ".game.Game":
 						target = player.opponent.hero
 					else:
 						target = card.targets[0]
-				#print("Playing %r on %r" % (card, target))
+				print("Playing %r on %r" % (card, target))
 				card.play(target=target)
+				cardsPlayed.append(str(card))
 				player.total_mana_spent += card.cost
 
 				if game.ended:
@@ -781,7 +783,8 @@ def mulligan(hand, weights):
 
 def play_full_game(weights) -> ".game.Game":
 	game = setup_game()
-
+	global cardsPlayed
+	cardsPlayed = list()
 	for player in game.players:
 		#print("Can mulligan %r" % (player.choice.cards))
 		player.total_mana_spent = 0
@@ -799,7 +802,7 @@ def play_full_game(weights) -> ".game.Game":
 	while True:
 		play_turn(game)
 		if game.ended:
-
+			print(cardsPlayed)
 			#print("1 iteration ended")
 			print("Loser: ", game.loser)
 			game.weights =_weights
