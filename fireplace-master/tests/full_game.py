@@ -6,7 +6,7 @@ from fireplace.utils import play_full_game, setEpsilon, setFeatures, setTDWeight
 import collections,copy
 
 '''
-Performs backward search. First it trains with epsilon-greedy algo, and uses those weights to then test with epsilon 0(deterministic policy)
+Performs backward search. First it trains with epsilon-greedy algorithm, and uses those weights to then test with epsilon 0 (deterministic policy)
 We then take the best subset of features each time and continue our search. At the end, we print out the best overall features
 '''
 def backwardSearch():
@@ -49,6 +49,10 @@ def backwardSearch():
 
 
 def test_full_game(numgames = 1):
+	"""
+	Calls play_full_game in utils.py numgames times and keeps track
+	of the win-rate and TD weights (if doing TD learning).
+	"""
 	try:
 		alpha = .4
 		weights = collections.defaultdict(int)
@@ -72,7 +76,7 @@ def test_full_game(numgames = 1):
 						weights[card.id] -= alpha
 					# for card in game.oppCards:
 					# 	weights[card.id] += alpha
-				# if i % 25 == 0: 
+				# if i % 25 == 0:
 				# if i % 100 == 0:
 				if i % 20 == 0 or i == 199:
 					print("iteration", i)
