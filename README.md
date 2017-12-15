@@ -98,16 +98,16 @@ Navigating the Framework:
 
 3. Look in /hsreplay-scraper/devtest.py
 	- The documentation or function name should be enough for the majority of these functions
-
+	- to test, simply run python3 devtest.py
 	- kNearestDecks()
 		- shows how we determine the distance of decks given the cards we've already seen
 		during the course of a game
 		- this is the main function to pay attention to in this file
 		- this is used by the minimax player to make good predictions on the opposing player's
 		deck so we can better evaluate potential moves by the opponent
-
+ 	-note on data -> the deck data is zipped in data.zip, and needs to be saved in the same folder in order to properly work
 Final Note: 
 While this is a pretty exhaustive list of functions that we implemented, there
 are many changes that we made throughout the codebase that we failed to mention here, simply
-because they aren't directly relevant to CS229 but were absolutely necessary in order for any
+because they aren't directly relevant to CS221/CS229 but were absolutely necessary in order for any
 of this to be possible.
